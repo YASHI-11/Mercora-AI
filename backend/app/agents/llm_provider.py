@@ -54,6 +54,39 @@ class AnthropicProvider(LLMProvider):
             return "".join(block.get("text", "") for block in data.get("content", []))
 
 
+class OpenAIProvider(LLMProvider):
+    def __init__(self, api_key: str, model: str):
+        self.api_key = api_key
+        self.model = model
+
+    @property
+    def is_live(self) -> bool:
+        return True
+
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            choices = data.get("choices") or []
+            if not choices:
+                return ""
+            return choices[0].get("message", {}).get("content", "")
+
+
 class GeminiProvider(LLMProvider):
     def __init__(self, api_key: str, model: str):
         self.api_key = api_key
@@ -136,6 +169,8 @@ def get_llm_provider() -> LLMProvider:
         _provider = AnthropicProvider(settings.llm_api_key)
     elif provider_name == "gemini" and settings.llm_api_key:
         _provider = GeminiProvider(settings.llm_api_key, settings.gemini_model)
+    elif provider_name == "openai" and settings.llm_api_key:
+        _provider = OpenAIProvider(settings.llm_api_key, settings.openai_model)
     elif provider_name == "ollama":
         _provider = OllamaProvider(settings.ollama_base_url, settings.ollama_model)
     else:

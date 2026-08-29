@@ -173,8 +173,9 @@ DATABASE_NAME=mercora
 RAZORPAY_KEY_ID=            # leave blank to use mock-payment mode
 RAZORPAY_KEY_SECRET=
 LLM_API_KEY=                # leave blank to use deterministic fallback NLU
-LLM_PROVIDER=none           # "none" | "anthropic" | "gemini" | "ollama" (local, no API key)
+LLM_PROVIDER=none           # "none" | "anthropic" | "gemini" | "openai" | "ollama" (local, no API key)
 GEMINI_MODEL=gemini-2.5-flash
+OPENAI_MODEL=gpt-4o-mini
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.2
 FRONTEND_URL=http://localhost:5173
@@ -207,12 +208,13 @@ shows every step → the Shopping Agent immediately surfaces the new bundle as a
 
 - Authentication is a lightweight email-identify flow, not a full password/JWT system (kept
   intentionally minimal so the agentic-commerce flow stays the focus).
-- The LLM fallback uses keyword/regex NLU; setting `LLM_PROVIDER` to `anthropic` or `gemini`
-  (with `LLM_API_KEY` set to the respective provider's key) or to `ollama` (a local model, no
-  key required -- run `ollama serve` and `ollama pull llama3.2` first) upgrades intent
-  understanding without any other code changes (see `backend/app/agents/llm_provider.py`). If
-  the LLM call fails or returns malformed output for any reason, the shopping agent
-  transparently falls back to the deterministic parser rather than erroring.
+- The LLM fallback uses keyword/regex NLU; setting `LLM_PROVIDER` to `anthropic`, `gemini`, or
+  `openai` (with `LLM_API_KEY` set to the respective provider's key) or to `ollama` (a local
+  model, no key required -- run `ollama serve` and `ollama pull llama3.2` first) upgrades
+  intent understanding without any other code changes (see
+  `backend/app/agents/llm_provider.py`). If the LLM call fails or returns malformed output for
+  any reason, the shopping agent transparently falls back to the deterministic parser rather
+  than erroring.
 - Product images are placeholder photos (`picsum.photos`), not real product photography.
 - Growth opportunities are recomputed on demand (`refresh=true`) rather than on a background
   schedule.
