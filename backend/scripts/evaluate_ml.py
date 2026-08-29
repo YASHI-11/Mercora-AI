@@ -66,7 +66,7 @@ def main():
     db = client[settings.database_name]
 
     print("=" * 60)
-    print("ShopPilot AI -- ML Evaluation Report")
+    print("Mercora AI -- ML Evaluation Report")
     print("=" * 60)
 
     print(f"\n[Recommendation Engine] Precision@{K} / Recall@{K} / Hit Rate")

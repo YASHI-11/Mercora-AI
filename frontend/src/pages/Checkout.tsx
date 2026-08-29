@@ -60,7 +60,7 @@ export default function Checkout() {
         key: data.key_id,
         amount: data.amount,
         currency: data.currency,
-        name: 'ShopPilot AI',
+        name: 'Mercora AI',
         description: 'Order ' + data.order_id,
         order_id: data.razorpay_order_id,
         handler: async (response: any) => {

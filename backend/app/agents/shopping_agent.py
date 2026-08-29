@@ -9,7 +9,7 @@ from within the agent -- that is a separate, explicit checkout step.
 """
 from app.database.connection import get_db
 from app.ml.recommendation import RecommendationEngine
-from app.agents.llm_provider import parse_shopping_intent
+from app.agents.llm_provider import parse_shopping_intent_llm, generate_conversational_reply
 from app.services import events
 from app.schemas.common import new_id, now_iso
 
@@ -20,14 +20,29 @@ async def _all_products() -> list[dict]:
 
 
 async def search_catalog(category: str | None, budget: float | None, keywords: list[str]) -> list[dict]:
+    """Category is a *preference*, not a strict filter: some products (e.g.
+    bundle-companion accessories) are tagged with their parent category for
+    association mining purposes even though a keyword like "mouse" or
+    "charger" describes them more precisely than the category does. So we
+    match on category OR any keyword appearing in the product's name/tags,
+    then let TF-IDF ranking (rank_by_intent) sort by actual relevance."""
     db = get_db()
-    query: dict = {}
-    if category:
-        query["category"] = category
+    and_filters: list[dict] = []
     if budget:
-        query["price"] = {"$lte": budget}
+        and_filters.append({"price": {"$lte": budget}})
+
+    match_clauses: list[dict] = []
+    if category:
+        match_clauses.append({"category": category})
+    for kw in keywords:
+        match_clauses.append({"name": {"$regex": kw, "$options": "i"}})
+        match_clauses.append({"tags": {"$regex": kw, "$options": "i"}})
+    if match_clauses:
+        and_filters.append({"$or": match_clauses})
+
+    query = {"$and": and_filters} if and_filters else {}
     products = await db.products.find(query).to_list(length=200)
-    if not products and category:
+    if not products:
         products = await db.products.find({"price": {"$lte": budget}} if budget else {}).to_list(length=200)
     return products
 
@@ -94,9 +109,29 @@ def format_product_summary(p: dict) -> str:
 
 
 async def handle_shopping_message(message: str, customer_id: str, session_id: str) -> dict:
-    """Main orchestration: intent -> search -> rank -> explain -> cross-sell."""
-    intent = parse_shopping_intent(message)
+    """Main orchestration: intent -> search -> rank -> explain -> cross-sell.
+    Messages that aren't an actual product request (greetings, thanks, small
+    talk) get a conversational reply instead of an unrelated product dump."""
+    db = get_db()
+    categories = await db.products.distinct("category")
+    intent = await parse_shopping_intent_llm(message, categories)
     await events.track("search", customer_id, {"query": message, "intent": intent})
+
+    if not intent.get("is_shopping_query"):
+        reply = await generate_conversational_reply(message)
+        await db.agent_conversations.insert_one({
+            "_id": new_id("conv"),
+            "session_id": session_id,
+            "customer_id": customer_id,
+            "role": "assistant",
+            "agent": "shopping_agent",
+            "message": message,
+            "reply": reply,
+            "intent": intent,
+            "products_shown": [],
+            "created_at": now_iso(),
+        })
+        return {"reply": reply, "products": [], "intent": intent, "cross_sell": []}
 
     candidates = await search_catalog(intent["category"], intent["budget"], intent["keywords"])
     ranked = await get_recommendations(candidates, message, top_k=6)
@@ -121,9 +156,9 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
         why = f"Best match because it satisfies {constraint_txt}"
         if p.get("rating", 0) >= 4.3:
             why += f" and has a strong {top.get('rating')}★ rating"
-        reply_lines.append(f"\nWhy ShopPilot recommends \"{top['name']}\": {why}.")
+        reply_lines.append(f"\nWhy Mercora recommends \"{top['name']}\": {why}.")
 
-        cross_sell = await get_cross_sell_products(top["_id"], top_k=1)
+        cross_sell = [c for c in await get_cross_sell_products(top["_id"], top_k=2) if c["_id"] != top["_id"]][:1]
         if cross_sell:
             cs = cross_sell[0]
             reply_lines.append(
@@ -147,9 +182,15 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
         "created_at": now_iso(),
     })
 
+    final_cross_sell = []
+    if ranked:
+        final_cross_sell = [
+            c for c in await get_cross_sell_products(ranked[0]["_id"], top_k=2) if c["_id"] != ranked[0]["_id"]
+        ][:1]
+
     return {
         "reply": reply,
         "products": ranked,
         "intent": intent,
-        "cross_sell": await get_cross_sell_products(ranked[0]["_id"], top_k=1) if ranked else [],
+        "cross_sell": final_cross_sell,
     }

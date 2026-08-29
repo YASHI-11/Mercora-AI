@@ -12,5 +12,5 @@ settings = get_settings()
 async def growth(payload: GrowthChatRequest):
     merchant_id = payload.merchant_id or settings.default_merchant_id
     session_id = payload.session_id or new_id("sess")
-    result = await answer_growth_question(payload.message, merchant_id)
+    result = await answer_growth_question(payload.message, merchant_id, session_id)
     return {**result, "session_id": session_id}

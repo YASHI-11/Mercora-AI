@@ -90,7 +90,7 @@ export default function ProductDetail() {
           </button>
 
           <div className="mt-4 rounded-md bg-zinc-50 border border-zinc-200 px-4 py-3">
-            <p className="text-xs font-semibold text-zinc-700 mb-1">Why ShopPilot recommends this</p>
+            <p className="text-xs font-semibold text-zinc-700 mb-1">Why Mercora recommends this</p>
             <p className="text-xs text-zinc-500 leading-relaxed">
               Rated {product.rating}★ in {product.category}, priced at ₹{finalPrice.toFixed(0)} — selected based on
               content similarity and popularity signals from our recommendation model.

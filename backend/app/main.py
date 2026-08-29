@@ -13,7 +13,7 @@ from app.api import (
 )
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("shoppilot")
+logger = logging.getLogger("mercora")
 settings = get_settings()
 
 
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ShopPilot AI", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Mercora AI", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

@@ -11,16 +11,16 @@ api.interceptors.response.use(
 )
 
 export function getCustomerId(): string {
-  let id = localStorage.getItem('shoppilot_customer_id')
+  let id = localStorage.getItem('mercora_customer_id')
   if (!id) {
     id = 'cust_guest_' + Math.random().toString(36).slice(2, 12)
-    localStorage.setItem('shoppilot_customer_id', id)
+    localStorage.setItem('mercora_customer_id', id)
   }
   return id
 }
 
 export function getSessionId(key: string): string {
-  const storageKey = `shoppilot_session_${key}`
+  const storageKey = `mercora_session_${key}`
   let id = sessionStorage.getItem(storageKey)
   if (!id) {
     id = 'sess_' + Math.random().toString(36).slice(2, 12)

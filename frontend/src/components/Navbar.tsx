@@ -15,8 +15,8 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2 font-semibold text-zinc-900">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-white text-xs font-bold">SP</span>
-          ShopPilot AI
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-white text-xs font-bold">MA</span>
+          Mercora AI
         </Link>
         <nav className="hidden md:flex items-center gap-1">
           <NavLink to="/shop" className={linkClass}>Shop</NavLink>

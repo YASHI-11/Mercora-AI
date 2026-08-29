@@ -1,4 +1,4 @@
-# ShopPilot AI
+# Mercora AI
 
 **Autonomous AI Commerce & Merchant Growth Platform**
 Built for the Razorpay AI Builder Internship / Buildathon — Track 01: AI Growth & Agentic Commerce.
@@ -11,7 +11,7 @@ Built for the Razorpay AI Builder Internship / Buildathon — Track 01: AI Growt
 ## 1. Problem Statement
 
 Online stores treat discovery and growth as separate problems: a search box for customers,
-a spreadsheet of dashboards for merchants. Neither side learns from the other. ShopPilot AI
+a spreadsheet of dashboards for merchants. Neither side learns from the other. Mercora AI
 closes the loop — a customer's shopping intent feeds a recommendation engine, purchases feed
 a growth-analysis engine, and merchant-approved growth actions (bundles, cross-sells) feed
 straight back into what the shopping agent can offer the next customer.
@@ -169,11 +169,14 @@ npm run dev   # http://localhost:5173, proxies /api to :8000
 ### Environment variables (`.env` at repo root)
 ```
 MONGODB_URI=mongodb://localhost:27017
-DATABASE_NAME=shoppilot
+DATABASE_NAME=mercora
 RAZORPAY_KEY_ID=            # leave blank to use mock-payment mode
 RAZORPAY_KEY_SECRET=
 LLM_API_KEY=                # leave blank to use deterministic fallback NLU
-LLM_PROVIDER=none           # or "anthropic"
+LLM_PROVIDER=none           # "none" | "anthropic" | "gemini" | "ollama" (local, no API key)
+GEMINI_MODEL=gemini-2.5-flash
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
 FRONTEND_URL=http://localhost:5173
 BACKEND_URL=http://localhost:8000
 ```
@@ -204,9 +207,12 @@ shows every step → the Shopping Agent immediately surfaces the new bundle as a
 
 - Authentication is a lightweight email-identify flow, not a full password/JWT system (kept
   intentionally minimal so the agentic-commerce flow stays the focus).
-- The LLM fallback uses keyword/regex NLU; plugging in `LLM_PROVIDER=anthropic` with a real
-  key upgrades intent understanding without any other code changes (see
-  `backend/app/agents/llm_provider.py`).
+- The LLM fallback uses keyword/regex NLU; setting `LLM_PROVIDER` to `anthropic` or `gemini`
+  (with `LLM_API_KEY` set to the respective provider's key) or to `ollama` (a local model, no
+  key required -- run `ollama serve` and `ollama pull llama3.2` first) upgrades intent
+  understanding without any other code changes (see `backend/app/agents/llm_provider.py`). If
+  the LLM call fails or returns malformed output for any reason, the shopping agent
+  transparently falls back to the deterministic parser rather than erroring.
 - Product images are placeholder photos (`picsum.photos`), not real product photography.
 - Growth opportunities are recomputed on demand (`refresh=true`) rather than on a background
   schedule.

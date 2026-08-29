@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { Sparkles, Send, Plus } from 'lucide-react'
 import { api, getCustomerId, getSessionId } from '../lib/api'
 import { useCart } from '../hooks/useCart'
+import { useChatHistory } from '../hooks/useChatHistory'
 import type { ChatMessage, ShoppingAgentResponse } from '../types'
 
 export default function ShoppingAssistant() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useChatHistory<ChatMessage>('mercora_shopping_chat', [
     { role: 'assistant', text: "Hi! Tell me what you're shopping for — e.g. \"wireless headphones under ₹4000 for gaming\"." },
   ])
   const [input, setInput] = useState('')
@@ -86,7 +87,7 @@ export default function ShoppingAssistant() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
-            placeholder="Ask ShopPilot AI…"
+            placeholder="Ask Mercora AI…"
             className="flex-1 rounded-md border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           />
           <button onClick={send} disabled={loading}

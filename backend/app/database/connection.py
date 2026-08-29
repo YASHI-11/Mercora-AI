@@ -2,7 +2,7 @@ import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.config import get_settings
 
-logger = logging.getLogger("shoppilot.db")
+logger = logging.getLogger("mercora.db")
 
 settings = get_settings()
 

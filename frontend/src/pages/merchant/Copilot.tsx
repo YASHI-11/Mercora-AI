@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Sparkles, Send } from 'lucide-react'
 import { api, getSessionId } from '../../lib/api'
+import { useChatHistory } from '../../hooks/useChatHistory'
 import type { ChatMessage, Opportunity } from '../../types'
 
 interface GrowthMsg extends ChatMessage {
@@ -14,7 +15,7 @@ const SUGGESTIONS = [
 ]
 
 export default function Copilot() {
-  const [messages, setMessages] = useState<GrowthMsg[]>([
+  const [messages, setMessages] = useChatHistory<GrowthMsg>('mercora_growth_chat', [
     { role: 'assistant', text: 'Ask me anything about your store\'s growth — I ground every answer in your actual order and product data.' },
   ])
   const [input, setInput] = useState('')

@@ -120,12 +120,16 @@ def make_products():
         # Only the FIRST item template in each category is the "hero" product used
         # for the intentional co-purchase pattern (paired with the category's single
         # companion product below); other item templates add catalog variety/noise.
+        # One unique suffix per variant so no two variants of the same item
+        # template (even sharing a brand) ever end up with an identical name.
+        variant_suffixes = ["", "Lite", "Pro", "Max"]
         for item_index, (name_tpl, lo, hi, features) in enumerate(meta["items"]):
             variants = 4 if item_index == 0 else 3
             for variant in range(1, variants + 1):
                 brand = random.choice(meta["brands"])
                 price = round(random.uniform(lo, hi), -1)
-                name = f"{brand} {name_tpl} {'Pro' if variant % 3 == 0 else ('Lite' if variant % 3 == 1 else '')}".strip()
+                suffix = variant_suffixes[(variant - 1) % len(variant_suffixes)]
+                name = f"{brand} {name_tpl} {suffix}".strip()
                 pid = nid("prod")
                 products.append({
                     "_id": pid,
@@ -269,7 +273,7 @@ def main():
     print("Creating merchant...")
     db.merchants.update_one(
         {"_id": MERCHANT_ID},
-        {"$set": {"_id": MERCHANT_ID, "name": "ShopPilot Demo Store", "created_at": now_iso(),
+        {"$set": {"_id": MERCHANT_ID, "name": "Mercora Demo Store", "created_at": now_iso(),
                    "guardrails": {"max_discount": 10, "max_bundle_discount": 15,
                                    "automatic_campaign_creation": False,
                                    "automatic_price_changes": False,

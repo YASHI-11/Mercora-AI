@@ -4,7 +4,7 @@ import hashlib
 import razorpay
 from app.config import get_settings
 
-logger = logging.getLogger("shoppilot.razorpay")
+logger = logging.getLogger("mercora.razorpay")
 settings = get_settings()
 
 _client: razorpay.Client | None = None
