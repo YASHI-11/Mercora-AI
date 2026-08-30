@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Send } from 'lucide-react'
-import { api, getSessionId } from '../../lib/api'
+import { Sparkles, Send, MessageSquarePlus } from 'lucide-react'
+import { api, getSessionId, resetSessionId } from '../../lib/api'
 import { useChatHistory } from '../../hooks/useChatHistory'
 import type { ChatMessage, Opportunity } from '../../types'
 
@@ -14,14 +14,23 @@ const SUGGESTIONS = [
   'Which products are underperforming?',
 ]
 
+const GREETING: GrowthMsg = {
+  role: 'assistant',
+  text: 'Ask me anything about your store\'s growth — I ground every answer in your actual order and product data.',
+}
+
 export default function Copilot() {
-  const [messages, setMessages] = useChatHistory<GrowthMsg>('mercora_growth_chat', [
-    { role: 'assistant', text: 'Ask me anything about your store\'s growth — I ground every answer in your actual order and product data.' },
-  ])
+  const [messages, setMessages] = useChatHistory<GrowthMsg>('mercora_growth_chat', [GREETING])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionId, setSessionId] = useState(() => getSessionId('growth'))
   const scrollRef = useRef<HTMLDivElement>(null)
-  const sessionId = getSessionId('growth')
+
+  function newChat() {
+    setMessages([GREETING])
+    setSessionId(resetSessionId('growth'))
+    setInput('')
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -48,6 +57,10 @@ export default function Copilot() {
       <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3">
         <Sparkles size={16} className="text-zinc-700" />
         <span className="text-sm font-semibold text-zinc-900">AI Growth Copilot</span>
+        <button onClick={newChat} title="Start a new chat"
+                className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900">
+          <MessageSquarePlus size={14} /> New chat
+        </button>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
         {messages.map((m, i) => (

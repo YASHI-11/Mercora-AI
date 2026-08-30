@@ -15,6 +15,24 @@ def _doc_text(p: dict) -> str:
     ])
 
 
+def _match_reason(source: dict, candidate: dict) -> str:
+    """Human-readable explanation of which attributes the two products share --
+    surfaced in the UI so a recommendation isn't just an opaque score."""
+    shared_tags = [t for t in candidate.get("tags", []) if t in set(source.get("tags", []))]
+    shared_features = [f for f in candidate.get("features", []) if f in set(source.get("features", []))]
+    same_category = source.get("category") and source.get("category") == candidate.get("category")
+
+    if shared_features:
+        return f"Shares {', '.join(shared_features[:2])} with {source['name']}"
+    if same_category and shared_tags:
+        return f"Same {candidate['category']} category, matching on {', '.join(shared_tags[:2])}"
+    if same_category:
+        return f"Also in {candidate['category']}"
+    if shared_tags:
+        return f"Matches on {', '.join(shared_tags[:2])}"
+    return "Similar based on content and popularity signals"
+
+
 class RecommendationEngine:
     def __init__(self, products: list[dict]):
         self.products = products
@@ -31,6 +49,7 @@ class RecommendationEngine:
         idx = self.id_to_idx.get(product_id)
         if idx is None or self.similarity.shape[0] == 0:
             return []
+        source = self.products[idx]
         scores = list(enumerate(self.similarity[idx]))
         scores.sort(key=lambda x: x[1], reverse=True)
         results = []
@@ -39,6 +58,7 @@ class RecommendationEngine:
                 continue
             p = dict(self.products[i])
             p["similarity_score"] = round(float(score), 4)
+            p["reason"] = _match_reason(source, p)
             results.append(p)
             if len(results) >= top_k:
                 break

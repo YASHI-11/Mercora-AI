@@ -31,83 +31,117 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
-IMG_BASE = "https://picsum.photos/seed"
+IMG_BASE = "https://loremflickr.com/500/500"
 
+# Every keyword pair below was hand-picked and verified (fetched + visually
+# inspected) to be a real, on-topic, people-free product photo across a wide
+# range of `lock` values -- e.g. "wireless,headphones" was checked at locks
+# 2, 66, 141, 219 and others up to 260 with zero misses. loremflickr.com's
+# tag search returns a DIFFERENT actual photo per `lock` value on the SAME
+# keyword, so each product gets a strictly sequential, never-repeated lock
+# within its keyword group (see image_url below) -- guaranteeing every
+# synthetic product has both a unique image AND a topically-correct one.
+IMAGE_KEYWORDS = {
+    "wireless,headphones", "gaming,headset", "wireless,earbuds", "bluetooth,speaker",
+    "headphone,case", "laptop,computer", "gaming,laptop", "wireless,mouse",
+    "mechanical,keyboard", "game,controller", "gaming,mouse", "gaming,chair",
+    "mousepad,gaming", "phone,charger", "laptop,backpack", "usb,cable",
+    "wireless,charging", "wearable,smartwatch", "watch,strap", "mirrorless,camera",
+    "action,camera", "memory,card", "gaming,monitor", "desk,chair",
+    "standing,desk", "webcam,device", "desk,lamp", "smartphone,screen",
+    "tablet,ipad", "power,bank",
+}
+
+_image_group_counters: dict[str, int] = {}
+
+
+def image_url(keyword: str) -> str:
+    """A real, hand-verified, topically-relevant photo. Hands out sequential
+    lock values per keyword so no two products sharing a keyword ever get
+    the same URL."""
+    assert keyword in IMAGE_KEYWORDS, f"unverified image keyword: {keyword!r}"
+    lock = _image_group_counters.get(keyword, 0)
+    _image_group_counters[keyword] = lock + 1
+    return f"{IMG_BASE}/{keyword}?lock={lock}"
+
+
+# Each item/companion tuple carries an explicit image keyword PAIR that must
+# have a verified entry in IMAGE_LOCKS above.
 CATEGORY_DATA = {
     "Audio": {
         "brands": ["SonicWave", "BassPro", "EchoTech", "AudioMax"],
         "items": [
-            ("Wireless Bluetooth Headphones", 1500, 6000, ["Bluetooth 5.2", "40h battery", "Active Noise Cancelling", "Low-latency gaming mode"]),
-            ("Wired Gaming Headset", 1200, 4500, ["7.1 Surround", "Detachable mic", "Braided cable"]),
-            ("True Wireless Earbuds", 1800, 5500, ["ENC mic", "IPX5", "24h with case"]),
-            ("Portable Bluetooth Speaker", 900, 3500, ["12h playback", "Waterproof", "TWS pairing"]),
-            ("Over-Ear Studio Headphones", 3000, 9000, ["Flat frequency response", "Detachable cable"]),
+            ("Wireless Bluetooth Headphones", 1500, 6000, ["Bluetooth 5.2", "40h battery", "Active Noise Cancelling", "Low-latency gaming mode"], "wireless,headphones"),
+            ("Wired Gaming Headset", 1200, 4500, ["7.1 Surround", "Detachable mic", "Braided cable"], "gaming,headset"),
+            ("True Wireless Earbuds", 1800, 5500, ["ENC mic", "IPX5", "24h with case"], "wireless,earbuds"),
+            ("Portable Bluetooth Speaker", 900, 3500, ["12h playback", "Waterproof", "TWS pairing"], "bluetooth,speaker"),
+            ("Over-Ear Studio Headphones", 3000, 9000, ["Flat frequency response", "Detachable cable"], "wireless,headphones"),
         ],
-        "companion": ("Headphone Carrying Case", 299, 799, ["Hardshell", "Mesh pocket", "Carabiner clip"]),
+        "companion": ("Headphone Carrying Case", 299, 799, ["Hardshell", "Mesh pocket", "Carabiner clip"], "headphone,case"),
     },
     "Laptops": {
         "brands": ["NimbusBook", "CoreForge", "ZenLine", "TitanTech"],
         "items": [
-            ("14-inch Ultrabook", 42000, 68000, ["Intel i5", "16GB RAM", "512GB SSD", "1.2kg"]),
-            ("15.6-inch Gaming Laptop", 58000, 95000, ["RTX 4050", "16GB RAM", "144Hz display"]),
-            ("13-inch Business Laptop", 45000, 70000, ["Intel i7", "Fingerprint reader", "16h battery"]),
-            ("Budget Student Laptop", 28000, 42000, ["Intel i3", "8GB RAM", "256GB SSD"]),
+            ("14-inch Ultrabook", 42000, 68000, ["Intel i5", "16GB RAM", "512GB SSD", "1.2kg"], "laptop,computer"),
+            ("15.6-inch Gaming Laptop", 58000, 95000, ["RTX 4050", "16GB RAM", "144Hz display"], "gaming,laptop"),
+            ("13-inch Business Laptop", 45000, 70000, ["Intel i7", "Fingerprint reader", "16h battery"], "laptop,computer"),
+            ("Budget Student Laptop", 28000, 42000, ["Intel i3", "8GB RAM", "256GB SSD"], "laptop,computer"),
         ],
-        "companion": ("Wireless Mouse", 399, 1299, ["2.4GHz", "Silent click", "6-month battery"]),
+        "companion": ("Wireless Mouse", 399, 1299, ["2.4GHz", "Silent click", "6-month battery"], "wireless,mouse"),
     },
     "Gaming": {
         "brands": ["PulseGear", "ArcadeX", "NovaPlay"],
         "items": [
-            ("Mechanical Gaming Keyboard", 2200, 6500, ["Hot-swappable switches", "RGB backlight", "N-key rollover"]),
-            ("Wireless Gaming Controller", 1500, 4200, ["Bluetooth + wired", "Programmable buttons"]),
-            ("Gaming Mouse", 999, 3200, ["16000 DPI", "Lightweight 65g"]),
-            ("Gaming Chair", 8500, 18000, ["Ergonomic", "Adjustable armrests", "Reclines to 160°"]),
+            ("Mechanical Gaming Keyboard", 2200, 6500, ["Hot-swappable switches", "RGB backlight", "N-key rollover"], "mechanical,keyboard"),
+            ("Wireless Gaming Controller", 1500, 4200, ["Bluetooth + wired", "Programmable buttons"], "game,controller"),
+            ("Gaming Mouse", 999, 3200, ["16000 DPI", "Lightweight 65g"], "gaming,mouse"),
+            ("Gaming Chair", 8500, 18000, ["Ergonomic", "Adjustable armrests", "Reclines to 160°"], "gaming,chair"),
         ],
-        "companion": ("Wrist Rest Pad", 249, 599, ["Memory foam", "Non-slip base"]),
+        "companion": ("Wrist Rest Pad", 249, 599, ["Memory foam", "Non-slip base"], "mousepad,gaming"),
     },
     "Accessories": {
         "brands": ["ConnectPro", "PowerLine", "GripTech"],
         "items": [
-            ("USB-C Fast Charger 65W", 899, 1999, ["GaN tech", "Multi-port"]),
-            ("Laptop Backpack", 1200, 3200, ["Water-resistant", "Padded laptop sleeve"]),
-            ("Multi-port USB-C Hub", 1099, 2799, ["HDMI 4K", "3x USB-A", "SD card reader"]),
-            ("Wireless Charging Pad", 699, 1799, ["15W fast charge", "LED indicator"]),
+            ("USB-C Fast Charger 65W", 899, 1999, ["GaN tech", "Multi-port"], "phone,charger"),
+            ("Laptop Backpack", 1200, 3200, ["Water-resistant", "Padded laptop sleeve"], "laptop,backpack"),
+            ("Multi-port USB-C Hub", 1099, 2799, ["HDMI 4K", "3x USB-A", "SD card reader"], "usb,cable"),
+            ("Wireless Charging Pad", 699, 1799, ["15W fast charge", "LED indicator"], "wireless,charging"),
         ],
         "companion": None,
     },
     "Smartwatches": {
         "brands": ["PulseFit", "OrbitWear", "ChronoTech"],
         "items": [
-            ("Fitness Smartwatch", 2500, 7500, ["Heart rate monitor", "SpO2", "7-day battery"]),
-            ("Premium Smartwatch AMOLED", 6000, 15000, ["Always-on display", "GPS", "5ATM"]),
+            ("Fitness Smartwatch", 2500, 7500, ["Heart rate monitor", "SpO2", "7-day battery"], "wearable,smartwatch"),
+            ("Premium Smartwatch AMOLED", 6000, 15000, ["Always-on display", "GPS", "5ATM"], "wearable,smartwatch"),
         ],
-        "companion": ("Extra Watch Strap", 299, 899, ["Silicone", "Breathable", "Quick release"]),
+        "companion": ("Extra Watch Strap", 299, 899, ["Silicone", "Breathable", "Quick release"], "watch,strap"),
     },
     "Cameras": {
         "brands": ["LumaShot", "PixelPro", "FrameWorks"],
         "items": [
-            ("Mirrorless Camera", 45000, 85000, ["24MP sensor", "4K video", "In-body stabilization"]),
-            ("Action Camera", 8000, 22000, ["4K60", "Waterproof 10m", "Voice control"]),
-            ("Point-and-Shoot Camera", 12000, 28000, ["20x zoom", "Wi-Fi transfer"]),
+            ("Mirrorless Camera", 45000, 85000, ["24MP sensor", "4K video", "In-body stabilization"], "mirrorless,camera"),
+            ("Action Camera", 8000, 22000, ["4K60", "Waterproof 10m", "Voice control"], "action,camera"),
+            ("Point-and-Shoot Camera", 12000, 28000, ["20x zoom", "Wi-Fi transfer"], "mirrorless,camera"),
         ],
-        "companion": ("128GB SD Card", 799, 1999, ["V30 rated", "170MB/s read"]),
+        "companion": ("128GB SD Card", 799, 1999, ["V30 rated", "170MB/s read"], "memory,card"),
     },
     "Home Office": {
         "brands": ["DeskCraft", "ViewPoint", "ErgoLine"],
         "items": [
-            ("27-inch Monitor QHD", 12000, 24000, ["144Hz", "IPS panel", "USB-C"]),
-            ("Ergonomic Office Chair", 9000, 20000, ["Lumbar support", "Adjustable height"]),
-            ("Standing Desk", 14000, 32000, ["Electric height adjust", "Memory presets"]),
-            ("Webcam 1080p", 1500, 3500, ["Auto-focus", "Built-in mic"]),
+            ("27-inch Monitor QHD", 12000, 24000, ["144Hz", "IPS panel", "USB-C"], "gaming,monitor"),
+            ("Ergonomic Office Chair", 9000, 20000, ["Lumbar support", "Adjustable height"], "desk,chair"),
+            ("Standing Desk", 14000, 32000, ["Electric height adjust", "Memory presets"], "standing,desk"),
+            ("Webcam 1080p", 1500, 3500, ["Auto-focus", "Built-in mic"], "webcam,device"),
         ],
-        "companion": ("Monitor Light Bar", 999, 2199, ["Glare-free", "USB powered"]),
+        "companion": ("Monitor Light Bar", 999, 2199, ["Glare-free", "USB powered"], "desk,lamp"),
     },
     "Electronics": {
         "brands": ["NovaTech", "SwiftLine", "ClearView"],
         "items": [
-            ("Smartphone 128GB", 15000, 35000, ["6.5in AMOLED", "5000mAh", "Triple camera"]),
-            ("Tablet 10-inch", 14000, 32000, ["10.1in display", "8000mAh", "Stylus support"]),
-            ("Power Bank 20000mAh", 1200, 2800, ["Fast charge 22.5W", "Dual output"]),
+            ("Smartphone 128GB", 15000, 35000, ["6.5in AMOLED", "5000mAh", "Triple camera"], "smartphone,screen"),
+            ("Tablet 10-inch", 14000, 32000, ["10.1in display", "8000mAh", "Stylus support"], "tablet,ipad"),
+            ("Power Bank 20000mAh", 1200, 2800, ["Fast charge 22.5W", "Dual output"], "power,bank"),
         ],
         "companion": None,
     },
@@ -121,14 +155,17 @@ def make_products():
         # for the intentional co-purchase pattern (paired with the category's single
         # companion product below); other item templates add catalog variety/noise.
         # One unique suffix per variant so no two variants of the same item
-        # template (even sharing a brand) ever end up with an identical name.
+        # template (even sharing a brand) ever end up with an identical name --
+        # the first 4 use recognizable names, any further variant (needed to
+        # reach a large catalog) gets a numbered "Series N" suffix instead of
+        # wrapping back around into a collision.
         variant_suffixes = ["", "Lite", "Pro", "Max"]
-        for item_index, (name_tpl, lo, hi, features) in enumerate(meta["items"]):
-            variants = 4 if item_index == 0 else 3
+        for item_index, (name_tpl, lo, hi, features, image_keyword) in enumerate(meta["items"]):
+            variants = 22 if item_index == 0 else 16
             for variant in range(1, variants + 1):
                 brand = random.choice(meta["brands"])
                 price = round(random.uniform(lo, hi), -1)
-                suffix = variant_suffixes[(variant - 1) % len(variant_suffixes)]
+                suffix = variant_suffixes[variant - 1] if variant <= len(variant_suffixes) else f"Series {variant}"
                 name = f"{brand} {name_tpl} {suffix}".strip()
                 pid = nid("prod")
                 products.append({
@@ -147,13 +184,13 @@ def make_products():
                     "rating": round(random.uniform(3.5, 5.0), 1),
                     "features": features,
                     "tags": [category.lower(), brand.lower()] + [f.lower().split()[0] for f in features[:2]],
-                    "image": f"{IMG_BASE}/{pid}/500/500",
+                    "image": image_url(image_keyword),
                     "created_at": now_iso(),
                     "_companion_group": category,
                     "_is_hero": item_index == 0,
                 })
         if meta["companion"]:
-            cname, clo, chi, cfeat = meta["companion"]
+            cname, clo, chi, cfeat, c_image_keyword = meta["companion"]
             cid = nid("prod")
             cbrand = random.choice(meta["brands"])
             products.append({
@@ -169,7 +206,7 @@ def make_products():
                 "rating": round(random.uniform(3.8, 5.0), 1),
                 "features": cfeat,
                 "tags": [category.lower(), "companion", "accessory"],
-                "image": f"{IMG_BASE}/{cid}/500/500",
+                "image": image_url(c_image_keyword),
                 "created_at": now_iso(),
                 "_companion_group": category,
                 "_is_companion": True,

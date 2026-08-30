@@ -12,6 +12,7 @@ export default function Shop() {
   const [sort, setSort] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
   const { invalidate } = useCart()
   const customerId = getCustomerId()
 
@@ -32,6 +33,14 @@ export default function Shop() {
     try {
       await api.post('/cart/items', { product_id: id, quantity: 1 }, { params: { customer_id: customerId } })
       invalidate()
+      setAddedIds((prev) => new Set(prev).add(id))
+      setTimeout(() => {
+        setAddedIds((prev) => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+      }, 2000)
     } finally {
       setAddingId(null)
     }
@@ -67,7 +76,7 @@ export default function Shop() {
           {data && data.products.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {data.products.map((p) => (
-                <ProductCard key={p._id} product={p} onAdd={addToCart} adding={addingId === p._id} />
+                <ProductCard key={p._id} product={p} onAdd={addToCart} adding={addingId === p._id} added={addedIds.has(p._id)} />
               ))}
             </div>
           )}

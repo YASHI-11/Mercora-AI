@@ -28,3 +28,13 @@ export function getSessionId(key: string): string {
   }
   return id
 }
+
+/** Starts a fresh conversation thread: a new session id so the agent's
+ * server-side conversation memory (ordinal/"show more" follow-ups) doesn't
+ * leak from the cleared chat into the new one. */
+export function resetSessionId(key: string): string {
+  const storageKey = `mercora_session_${key}`
+  const id = 'sess_' + Math.random().toString(36).slice(2, 12)
+  sessionStorage.setItem(storageKey, id)
+  return id
+}

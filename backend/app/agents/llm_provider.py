@@ -337,9 +337,30 @@ async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict
             category = None
         budget = parsed.get("budget")
         budget = float(budget) if isinstance(budget, (int, float)) else None
-        keywords = parsed.get("keywords") or []
-        keywords = [str(k).lower() for k in keywords if isinstance(k, (str, int, float))]
+        # The LLM sometimes returns a keyword as a whole multi-word phrase
+        # (e.g. "wireless headphone") instead of individual words; downstream
+        # search_catalog() does a per-keyword regex match against product
+        # name/tags, which needs that literal phrase as a contiguous
+        # substring and otherwise silently matches nothing. Split any
+        # multi-word keyword back into its individual words.
+        raw_keywords = parsed.get("keywords") or []
+        keywords: list[str] = []
+        for k in raw_keywords:
+            if not isinstance(k, (str, int, float)):
+                continue
+            keywords.extend(str(k).lower().split())
         is_shopping_query = bool(parsed.get("is_shopping_query"))
+        # A local/small LLM can misclassify even an unambiguous query (e.g.
+        # "wireless headphone" -> "Electronics" instead of "Audio", observed
+        # consistently, not just flaky). CATEGORY_KEYWORDS is a small curated
+        # set of exact, unambiguous keyword->category mappings, so when it
+        # finds a match it's trusted over the LLM's guess; the LLM's category
+        # is only used when the deterministic parser finds nothing (e.g.
+        # vaguer requests like "something to listen to music on").
+        if is_shopping_query:
+            deterministic_category = parse_shopping_intent(message).get("category")
+            if deterministic_category:
+                category = deterministic_category
         return {"category": category, "budget": budget, "keywords": keywords,
                 "is_shopping_query": is_shopping_query}
     except Exception:

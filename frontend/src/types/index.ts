@@ -17,6 +17,7 @@ export interface Product {
   similarity_score?: number
   reason?: string
   confidence?: number
+  best_pick?: boolean
   units_sold?: number
   revenue?: number
 }
@@ -58,6 +59,7 @@ export interface ShoppingAgentResponse {
   cross_sell: Product[]
   intent: { category: string | null; budget: number | null; keywords: string[] }
   session_id: string
+  redirect_to_checkout?: boolean
 }
 
 export interface ChatMessage {

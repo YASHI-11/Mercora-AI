@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
-import { Star, Plus } from 'lucide-react'
+import { Star, Plus, Check } from 'lucide-react'
 import type { Product } from '../types'
 
-export default function ProductCard({ product, onAdd, adding }: {
+export default function ProductCard({ product, onAdd, adding, added }: {
   product: Product
   onAdd?: (id: string) => void
   adding?: boolean
+  added?: boolean
 }) {
   const finalPrice = product.price * (1 - (product.discount || 0) / 100)
 
@@ -39,9 +40,11 @@ export default function ProductCard({ product, onAdd, adding }: {
           <button
             onClick={() => onAdd(product._id)}
             disabled={adding}
-            className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 py-2 text-xs font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+            className={`mt-2 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium text-white disabled:opacity-60 ${
+              added ? 'bg-emerald-600 hover:bg-emerald-600' : 'bg-zinc-900 hover:bg-zinc-700'
+            }`}
           >
-            <Plus size={13} /> {adding ? 'Adding…' : 'Add to Cart'}
+            {added ? <><Check size={13} /> Added</> : <><Plus size={13} /> {adding ? 'Adding…' : 'Add to Cart'}</>}
           </button>
         )}
       </div>
