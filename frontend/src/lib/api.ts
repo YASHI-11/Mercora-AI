@@ -1,6 +1,13 @@
 import axios from 'axios'
 
-export const api = axios.create({ baseURL: '/api' })
+// In local dev, vite.config.ts proxies /api -> localhost:8000, so the
+// relative path works with no env var needed. In production the frontend
+// and backend are typically deployed to different hosts (e.g. Vercel +
+// Railway), so VITE_API_BASE_URL must be set at build time to the deployed
+// backend's full URL (e.g. https://your-backend.up.railway.app/api).
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
+
+export const api = axios.create({ baseURL })
 
 api.interceptors.response.use(
   (res) => res,
