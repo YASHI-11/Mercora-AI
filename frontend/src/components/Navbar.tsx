@@ -1,10 +1,12 @@
-import { Link, NavLink } from 'react-router-dom'
-import { ShoppingCart, Store } from 'lucide-react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { ShoppingCart } from 'lucide-react'
 import { useCart } from '../hooks/useCart'
 
 export default function Navbar() {
   const { cart } = useCart()
   const itemCount = cart?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0
+  const { pathname } = useLocation()
+  const isMerchant = pathname.startsWith('/merchant')
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `relative text-sm font-medium px-3 py-2 transition-colors ${
@@ -20,24 +22,24 @@ export default function Navbar() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-gold-300 text-[13px] font-display italic shadow-sm">M</span>
           <span className="font-display italic text-xl tracking-tight">Mercora AI</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-1">
-          <NavLink to="/shop" className={linkClass}>Shop</NavLink>
-          <NavLink to="/orders" className={linkClass}>Orders</NavLink>
-          <NavLink to="/merchant" className={linkClass} end>Merchant</NavLink>
-        </nav>
-        <div className="flex items-center gap-2">
-          <Link to="/cart" className="relative flex items-center justify-center h-9 w-9 rounded-full border border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:text-zinc-900 hover:shadow-sm">
-            <ShoppingCart size={16} />
-            {itemCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold-500 px-1 text-[10px] font-semibold text-white shadow-sm">
-                {itemCount}
-              </span>
-            )}
-          </Link>
-          <Link to="/merchant" className="hidden sm:flex items-center gap-1.5 rounded-full border border-zinc-200 px-3.5 py-2 text-sm font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50">
-            <Store size={14} /> Merchant
-          </Link>
-        </div>
+        {!isMerchant && (
+          <nav className="hidden md:flex items-center gap-1">
+            <NavLink to="/shop" className={linkClass}>Shop</NavLink>
+            <NavLink to="/orders" className={linkClass}>Orders</NavLink>
+          </nav>
+        )}
+        {!isMerchant && (
+          <div className="flex items-center gap-2">
+            <Link to="/cart" className="relative flex items-center justify-center h-9 w-9 rounded-full border border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:text-zinc-900 hover:shadow-sm">
+              <ShoppingCart size={16} />
+              {itemCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold-500 px-1 text-[10px] font-semibold text-white shadow-sm">
+                  {itemCount}
+                </span>
+              )}
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   )

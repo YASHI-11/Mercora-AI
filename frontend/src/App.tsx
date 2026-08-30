@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Landing from './pages/Landing'
 import Shop from './pages/Shop'
@@ -16,9 +16,12 @@ import Audit from './pages/merchant/Audit'
 import Settings from './pages/merchant/Settings'
 
 export default function App() {
+  const { pathname } = useLocation()
+  const isLanding = pathname === '/'
+
   return (
     <div className="min-h-screen bg-zinc-50">
-      <Navbar />
+      {!isLanding && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/shop" element={<Shop />} />

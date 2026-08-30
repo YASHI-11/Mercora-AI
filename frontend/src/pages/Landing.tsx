@@ -16,10 +16,7 @@ export default function Landing() {
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 -top-24 h-96 bg-[radial-gradient(ellipse_at_top,_rgba(179,129,47,0.10),transparent_65%)]" />
         <div className="relative mx-auto max-w-5xl px-4 sm:px-6 pt-24 pb-20 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-gold-200 bg-gold-50 px-3.5 py-1 text-xs font-medium text-gold-700">
-            <Sparkles size={12} /> Razorpay AI Builder — Agentic Commerce
-          </span>
-          <h1 className="mt-7 text-5xl sm:text-6xl text-zinc-900 tracking-tight leading-[1.08]">
+          <h1 className="text-5xl sm:text-6xl text-zinc-900 tracking-tight leading-[1.08]">
             Shop smarter.<br />
             <span className="font-display italic text-gold-600">Grow faster.</span>
           </h1>
