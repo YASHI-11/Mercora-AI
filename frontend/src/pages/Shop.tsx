@@ -50,24 +50,27 @@ export default function Shop() {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         <div>
-          <div className="flex flex-wrap items-center gap-2 mb-5">
-            <select value={category} onChange={(e) => setCategory(e.target.value)}
-                    className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm">
-              <option value="">All categories</option>
-              {categoriesData?.categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={sort} onChange={(e) => setSort(e.target.value)}
-                    className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm">
-              <option value="">Sort: Relevance</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="rating">Rating</option>
-              <option value="newest">Newest</option>
-            </select>
-            <input type="number" placeholder="Max price ₹" value={maxPrice}
-                   onChange={(e) => setMaxPrice(e.target.value)}
-                   className="w-32 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm" />
-            {data && <span className="ml-auto text-xs text-zinc-400">{data.total} products</span>}
+          <div className="mb-6">
+            <h1 className="font-display italic text-2xl text-zinc-900 mb-4">Shop the catalog</h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <select value={category} onChange={(e) => setCategory(e.target.value)}
+                      className="rounded-full border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-700 outline-none focus:border-gold-300 focus:ring-2 focus:ring-gold-100">
+                <option value="">All categories</option>
+                {categoriesData?.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={sort} onChange={(e) => setSort(e.target.value)}
+                      className="rounded-full border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-700 outline-none focus:border-gold-300 focus:ring-2 focus:ring-gold-100">
+                <option value="">Sort: Relevance</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="rating">Rating</option>
+                <option value="newest">Newest</option>
+              </select>
+              <input type="number" placeholder="Max price ₹" value={maxPrice}
+                     onChange={(e) => setMaxPrice(e.target.value)}
+                     className="w-32 rounded-full border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-700 outline-none focus:border-gold-300 focus:ring-2 focus:ring-gold-100" />
+              {data && <span className="ml-auto text-xs font-medium text-zinc-400">{data.total} products</span>}
+            </div>
           </div>
 
           {isLoading && <LoadingState label="Loading products…" />}

@@ -3,7 +3,7 @@ import { Loader2, AlertTriangle, PackageSearch } from 'lucide-react'
 export function LoadingState({ label = 'Loading…' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-16 text-zinc-400">
-      <Loader2 size={22} className="animate-spin" />
+      <Loader2 size={22} className="animate-spin text-gold-500" />
       <span className="text-sm">{label}</span>
     </div>
   )

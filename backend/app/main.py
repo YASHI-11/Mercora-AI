@@ -1,5 +1,13 @@
 import logging
+import os
 from contextlib import asynccontextmanager
+
+# scikit-learn's KMeans (customer segmentation) parallelizes via joblib's
+# loky backend, which probes physical CPU core count by shelling out to
+# `wmic` -- removed in recent Windows versions, producing a harmless but
+# noisy UserWarning on every clustering call. Setting this env var (joblib's
+# own documented fix) skips that probe.
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 4))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware

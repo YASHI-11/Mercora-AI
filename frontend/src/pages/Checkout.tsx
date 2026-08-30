@@ -79,7 +79,7 @@ export default function Checkout() {
           }
         },
         modal: { ondismiss: () => setStatus('idle') },
-        theme: { color: '#18181b' },
+        theme: { color: '#b3812f' },
       })
       rzp.on('payment.failed', () => { setStatus('failed'); setErrorMsg('Payment failed or was declined.') })
       rzp.open()
@@ -93,11 +93,11 @@ export default function Checkout() {
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
         <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-4" />
-        <h1 className="text-lg font-semibold text-zinc-900">Payment Successful</h1>
+        <h1 className="font-display italic text-2xl text-zinc-900">Payment Successful</h1>
         <p className="text-sm text-zinc-500 mt-1">Your order has been confirmed.</p>
         <div className="flex justify-center gap-3 mt-6">
-          <button onClick={() => navigate('/orders')} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white">View Orders</button>
-          <button onClick={() => navigate('/shop')} className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700">Continue Shopping</button>
+          <button onClick={() => navigate('/orders')} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">View Orders</button>
+          <button onClick={() => navigate('/shop')} className="rounded-full border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:border-zinc-300">Continue Shopping</button>
         </div>
       </div>
     )
@@ -107,9 +107,9 @@ export default function Checkout() {
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
         <XCircle size={40} className="mx-auto text-red-500 mb-4" />
-        <h1 className="text-lg font-semibold text-zinc-900">Payment Failed</h1>
+        <h1 className="font-display italic text-2xl text-zinc-900">Payment Failed</h1>
         <p className="text-sm text-zinc-500 mt-1">{errorMsg || 'Something went wrong during payment.'}</p>
-        <button onClick={() => setStatus('idle')} className="mt-6 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white">Try Again</button>
+        <button onClick={() => setStatus('idle')} className="mt-6 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">Try Again</button>
       </div>
     )
   }
@@ -118,17 +118,17 @@ export default function Checkout() {
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
         <p className="text-sm text-zinc-500">Your cart is empty.</p>
-        <button onClick={() => navigate('/shop')} className="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white">Go to Shop</button>
+        <button onClick={() => navigate('/shop')} className="mt-4 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">Go to Shop</button>
       </div>
     )
   }
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-lg font-semibold text-zinc-900 mb-1">Checkout</h1>
+      <h1 className="font-display italic text-2xl text-zinc-900 mb-1">Checkout</h1>
       <p className="text-sm text-zinc-500 mb-6">Razorpay Test Mode — no real payment is made.</p>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-5">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="space-y-2 mb-4">
           {cart.items.map((i) => (
             <div key={i.product_id} className="flex justify-between text-sm text-zinc-600">
@@ -141,11 +141,11 @@ export default function Checkout() {
         </div>
 
         <button onClick={startPayment} disabled={status === 'processing'}
-                className="mt-5 w-full flex items-center justify-center gap-2 rounded-md bg-zinc-900 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
+                className="mt-5 w-full flex items-center justify-center gap-2 rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60">
           {status === 'processing' ? <><Loader2 size={15} className="animate-spin" /> Processing…</> : 'Pay with Razorpay'}
         </button>
         <p className="flex items-center justify-center gap-1.5 mt-3 text-xs text-zinc-400">
-          <ShieldCheck size={12} /> Secured by Razorpay · Test Mode
+          <ShieldCheck size={12} className="text-gold-500" /> Secured by Razorpay · Test Mode
         </p>
       </div>
     </div>

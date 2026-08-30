@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Instrument Serif", Georgia, serif;
+
+  /* A warm, muted gold -- deliberately not another "AI purple" gradient. */
+  --color-gold-50: #fbf7ee;
+  --color-gold-100: #f4e9cd;
+  --color-gold-200: #e8d29e;
+  --color-gold-300: #d9b467;
+  --color-gold-400: #c99a41;
+  --color-gold-500: #b3812f;
+  --color-gold-600: #966826;
+  --color-gold-700: #785121;
+  --color-gold-800: #5c3d1c;
+  --color-gold-900: #3e2913;
+
+  --color-ink: #0c0b09;
+}
+
 :root {
   color-scheme: light;
 }
@@ -14,10 +33,21 @@ html, body, #root {
 
 body {
   margin: 0;
-  font-family: -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
-  background: #fafafa;
-  color: #18181b;
+  font-family: var(--font-sans);
+  background: #faf9f6;
+  background-image: radial-gradient(circle at 12% 0%, rgba(179, 129, 47, 0.05), transparent 40%);
+  color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+a, button {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
 ::-webkit-scrollbar {
@@ -25,6 +55,12 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
+  background: #ddd6c8;
   border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbbfa5;
+}
+::selection {
+  background: var(--color-gold-200);
 }

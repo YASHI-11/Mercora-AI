@@ -18,7 +18,7 @@ export default function MerchantLayout() {
           <NavLink key={t.to} to={t.to} end={t.end}
                    className={({ isActive }) =>
                      `whitespace-nowrap px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                       isActive ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-900'
+                       isActive ? 'border-gold-400 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-900'
                      }`
                    }>
             {t.label}
