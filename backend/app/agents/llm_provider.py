@@ -13,6 +13,20 @@ from app.config import get_settings
 logger = logging.getLogger("mercora.llm")
 settings = get_settings()
 
+# Conservative ceiling across gemini-2.5-flash / gpt-4o-mini / llama3.2 context windows --
+# keeps latency bounded and (for paid providers) protects against a runaway prompt (e.g. a
+# long conversation history plus a large facts payload) blowing up cost on a single call.
+MAX_PROMPT_TOKENS = 6000
+
+
+def estimate_tokens(text: str) -> int:
+    """Rough, provider-agnostic token estimate (~4 characters per token for English,
+    the standard rule-of-thumb approximation). Good enough for budget enforcement and
+    usage visibility without pulling in a heavy tokenizer dependency or requiring
+    network access to download BPE vocab files -- consistent with this project's
+    zero-external-dependency-by-default philosophy."""
+    return max(1, len(text) // 4)
+
 
 class LLMProvider(ABC):
     @abstractmethod
@@ -157,6 +171,66 @@ class FallbackProvider(LLMProvider):
         return ""
 
 
+async def _record_token_usage(provider_name: str, prompt_tokens: int, completion_tokens: int, truncated: bool) -> None:
+    """Persists an (estimated) token usage event for visibility -- GET /api/llm-usage
+    aggregates these. Best-effort: a logging failure here must never break a chat reply."""
+    try:
+        from app.database.connection import get_db
+        from app.schemas.common import new_id, now_iso
+        db = get_db()
+        await db.llm_usage_events.insert_one({
+            "_id": new_id("tok"),
+            "provider": provider_name,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+            "truncated": truncated,
+            "created_at": now_iso(),
+        })
+    except Exception:
+        logger.warning("Failed to record LLM token usage event", exc_info=True)
+
+
+class _InstrumentedProvider(LLMProvider):
+    """Wraps any live LLMProvider to (1) enforce MAX_PROMPT_TOKENS by truncating an
+    over-budget user prompt -- keeping the tail, since callers in this app put the
+    actual question/new message last and put replaceable context (facts, history)
+    earlier -- and (2) log and persist estimated token usage for every call, so
+    "how many tokens is this costing us" is answerable without adding a metered
+    SDK per provider."""
+
+    def __init__(self, inner: LLMProvider, name: str):
+        self._inner = inner
+        self._name = name
+
+    @property
+    def is_live(self) -> bool:
+        return self._inner.is_live
+
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        system_tokens = estimate_tokens(system_prompt)
+        budget = max(500, MAX_PROMPT_TOKENS - system_tokens)
+        truncated = False
+        if estimate_tokens(user_prompt) > budget:
+            char_budget = budget * 4
+            user_prompt = "[...earlier context truncated to fit token budget...]\n" + user_prompt[-char_budget:]
+            truncated = True
+
+        prompt_tokens = system_tokens + estimate_tokens(user_prompt)
+        if truncated:
+            logger.warning(f"[{self._name}] prompt truncated to fit ~{MAX_PROMPT_TOKENS} token budget")
+
+        reply = await self._inner.complete(system_prompt, user_prompt)
+
+        completion_tokens = estimate_tokens(reply)
+        logger.info(
+            f"[{self._name}] tokens ~= prompt {prompt_tokens}, completion {completion_tokens}, "
+            f"total {prompt_tokens + completion_tokens}"
+        )
+        await _record_token_usage(self._name, prompt_tokens, completion_tokens, truncated)
+        return reply
+
+
 _provider: LLMProvider | None = None
 
 
@@ -166,13 +240,13 @@ def get_llm_provider() -> LLMProvider:
         return _provider
     provider_name = settings.llm_provider.lower()
     if provider_name == "anthropic" and settings.llm_api_key:
-        _provider = AnthropicProvider(settings.llm_api_key)
+        _provider = _InstrumentedProvider(AnthropicProvider(settings.llm_api_key), "anthropic")
     elif provider_name == "gemini" and settings.llm_api_key:
-        _provider = GeminiProvider(settings.llm_api_key, settings.gemini_model)
+        _provider = _InstrumentedProvider(GeminiProvider(settings.llm_api_key, settings.gemini_model), "gemini")
     elif provider_name == "openai" and settings.llm_api_key:
-        _provider = OpenAIProvider(settings.llm_api_key, settings.openai_model)
+        _provider = _InstrumentedProvider(OpenAIProvider(settings.llm_api_key, settings.openai_model), "openai")
     elif provider_name == "ollama":
-        _provider = OllamaProvider(settings.ollama_base_url, settings.ollama_model)
+        _provider = _InstrumentedProvider(OllamaProvider(settings.ollama_base_url, settings.ollama_model), "ollama")
     else:
         _provider = FallbackProvider()
     return _provider

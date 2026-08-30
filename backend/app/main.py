@@ -9,7 +9,7 @@ from app.config import get_settings
 from app.database.connection import check_connection, ensure_indexes
 from app.api import (
     auth, products, search, recommendations, cart, orders, payments,
-    shopping_agent, merchant, growth_agent, opportunities, audit,
+    shopping_agent, merchant, growth_agent, opportunities, audit, llm_usage,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -55,6 +55,6 @@ async def health():
 for router in [
     auth.router, products.router, search.router, recommendations.router, cart.router,
     orders.router, payments.router, shopping_agent.router, merchant.router,
-    growth_agent.router, opportunities.router, audit.router,
+    growth_agent.router, opportunities.router, audit.router, llm_usage.router,
 ]:
     app.include_router(router)
