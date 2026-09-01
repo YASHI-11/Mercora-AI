@@ -304,7 +304,7 @@ def main():
         print(f"ERROR: CSV not found at {csv_path}")
         sys.exit(1)
 
-    client = MongoClient("mongodb+srv://rvsuryawanshi1756_db_user:SLrPr4VqMpbHQkBI@shoppilot.tv7ummd.mongodb.net", serverSelectionTimeoutMS=5000)
+    client = MongoClient(settings.mongodb_uri, serverSelectionTimeoutMS=5000)
     db = client[settings.database_name]
     try:
         client.admin.command("ping")
