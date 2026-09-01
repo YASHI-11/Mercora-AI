@@ -1,11 +1,14 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import RequireAuth from './components/RequireAuth'
 import Landing from './pages/Landing'
+import Auth from './pages/Auth'
 import Shop from './pages/Shop'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Orders from './pages/Orders'
+import InvoicePage from './pages/Invoice'
 import MerchantLayout from './components/MerchantLayout'
 import Overview from './pages/merchant/Overview'
 import Analytics from './pages/merchant/Analytics'
@@ -18,17 +21,20 @@ import Settings from './pages/merchant/Settings'
 export default function App() {
   const { pathname } = useLocation()
   const isLanding = pathname === '/'
+  const isAuthPage = pathname === '/login'
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {!isLanding && <Navbar />}
+      {!isLanding && !isAuthPage && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/shop/product/:id" element={<ProductDetail />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/orders" element={<Orders />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/shop" element={<RequireAuth><Shop /></RequireAuth>} />
+        <Route path="/shop/product/:id" element={<RequireAuth><ProductDetail /></RequireAuth>} />
+        <Route path="/cart" element={<RequireAuth><Cart /></RequireAuth>} />
+        <Route path="/checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
+        <Route path="/orders" element={<RequireAuth><Orders /></RequireAuth>} />
+        <Route path="/orders/:id/invoice" element={<RequireAuth><InvoicePage /></RequireAuth>} />
         <Route path="/merchant" element={<MerchantLayout />}>
           <Route index element={<Overview />} />
           <Route path="analytics" element={<Analytics />} />

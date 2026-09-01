@@ -46,3 +46,46 @@ async def get_order(order_id: str):
     if not order:
         raise HTTPException(404, "Order not found")
     return order
+
+
+@router.get("/{order_id}/invoice")
+async def get_invoice(order_id: str):
+    """Only available once payment is confirmed. Customer contact/address
+    fields come from the verified account profile (see api/auth.py) --
+    doubles as the delivery details since checkout doesn't collect a
+    separate shipping address."""
+    db = get_db()
+    order = await db.orders.find_one({"_id": order_id})
+    if not order:
+        raise HTTPException(404, "Order not found")
+    if order["payment_status"] != "paid":
+        raise HTTPException(400, "Invoice is only available once payment is confirmed")
+
+    customer = await db.customers.find_one({"_id": order["customer_id"]})
+    if not customer:
+        raise HTTPException(404, "Customer not found")
+
+    customer_details = {
+        "name": customer.get("name", ""),
+        "address": customer.get("address", ""),
+        "phone": customer.get("phone", ""),
+        "email": customer.get("email", ""),
+    }
+
+    return {
+        "invoice_number": "INV-" + order["_id"].split("_", 1)[-1][:10].upper(),
+        "issued_at": order.get("paid_at") or order["created_at"],
+        "order_id": order["_id"],
+        "customer": customer_details,
+        "delivery": customer_details,
+        "items": order["items"],
+        "subtotal": order["subtotal"],
+        "discount": order["discount"],
+        "total": order["total"],
+        "payment": {
+            "status": order["payment_status"],
+            "razorpay_order_id": order.get("razorpay_order_id"),
+            "razorpay_payment_id": order.get("razorpay_payment_id"),
+            "paid_at": order.get("paid_at"),
+        },
+    }

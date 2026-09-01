@@ -26,6 +26,36 @@ export function getCustomerId(): string {
   return id
 }
 
+export interface AuthCustomer {
+  _id: string
+  name?: string
+  phone?: string
+  email?: string
+}
+
+/** Called once signup/login OTP verification succeeds -- swaps the guest
+ * identity for the real, verified customer_id so every subsequent call
+ * (cart, orders, agent) that reads getCustomerId() picks it up automatically. */
+export function setAuthenticatedCustomer(customer: AuthCustomer) {
+  localStorage.setItem('mercora_customer_id', customer._id)
+  localStorage.setItem('mercora_authenticated', 'true')
+  localStorage.setItem('mercora_customer_name', customer.name || '')
+}
+
+export function isAuthenticated(): boolean {
+  return localStorage.getItem('mercora_authenticated') === 'true'
+}
+
+export function getCustomerName(): string {
+  return localStorage.getItem('mercora_customer_name') || ''
+}
+
+export function logout() {
+  localStorage.removeItem('mercora_customer_id')
+  localStorage.removeItem('mercora_authenticated')
+  localStorage.removeItem('mercora_customer_name')
+}
+
 export function getSessionId(key: string): string {
   const storageKey = `mercora_session_${key}`
   let id = sessionStorage.getItem(storageKey)

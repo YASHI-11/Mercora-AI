@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { FileText } from 'lucide-react'
 import { api, getCustomerId } from '../lib/api'
 import { LoadingState, ErrorState, EmptyState } from '../components/StateViews'
 import type { Order } from '../types'
@@ -41,7 +43,14 @@ export default function Orders() {
               </div>
               <div className="flex items-center justify-between text-sm border-t border-zinc-100 pt-2">
                 <span className="text-zinc-400">{new Date(o.created_at).toLocaleString()}</span>
-                <span className="font-semibold text-zinc-900">₹{o.total.toLocaleString('en-IN')}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-zinc-900">₹{o.total.toLocaleString('en-IN')}</span>
+                  {o.payment_status === 'paid' && (
+                    <Link to={`/orders/${o._id}/invoice`} className="flex items-center gap-1 text-xs font-medium text-gold-600 hover:text-gold-700">
+                      <FileText size={12} /> Invoice
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           ))}

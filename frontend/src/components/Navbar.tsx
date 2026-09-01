@@ -1,12 +1,20 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { ShoppingCart } from 'lucide-react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { ShoppingCart, LogOut } from 'lucide-react'
 import { useCart } from '../hooks/useCart'
+import { getCustomerName, isAuthenticated, logout } from '../lib/api'
 
 export default function Navbar() {
   const { cart } = useCart()
   const itemCount = cart?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const isMerchant = pathname.startsWith('/merchant')
+  const customerName = getCustomerName()
+
+  function handleLogout() {
+    logout()
+    navigate('/', { replace: true })
+  }
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `relative text-sm font-medium px-3 py-2 transition-colors ${
@@ -16,7 +24,7 @@ export default function Navbar() {
     }`
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/85 backdrop-blur-md">
+    <header className="print:hidden sticky top-0 z-40 border-b border-zinc-200/70 bg-white/85 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2.5 text-zinc-900">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-gold-300 text-[13px] font-display italic shadow-sm">M</span>
@@ -30,6 +38,9 @@ export default function Navbar() {
         )}
         {!isMerchant && (
           <div className="flex items-center gap-2">
+            {isAuthenticated() && customerName && (
+              <span className="hidden sm:block text-xs text-zinc-500 mr-1">Hi, {customerName}</span>
+            )}
             <Link to="/cart" className="relative flex items-center justify-center h-9 w-9 rounded-full border border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:text-zinc-900 hover:shadow-sm">
               <ShoppingCart size={16} />
               {itemCount > 0 && (
@@ -38,6 +49,12 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+            {isAuthenticated() && (
+              <button onClick={handleLogout} title="Log out"
+                      className="flex items-center justify-center h-9 w-9 rounded-full border border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:text-zinc-900 hover:shadow-sm">
+                <LogOut size={15} />
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Search, Sparkles, ShoppingCart, LineChart, TrendingUp } from 'lucide-react'
+import { isAuthenticated } from '../lib/api'
 
 const steps = [
   { icon: Search, label: 'Customer Intent', desc: 'Natural-language shopping request' },
@@ -25,7 +26,7 @@ export default function Landing() {
             and merchant data into growth.
           </p>
           <div className="mt-9 flex items-center justify-center gap-3">
-            <Link to="/shop" className="group flex items-center gap-1.5 rounded-full bg-ink px-6 py-3 text-sm font-medium text-white shadow-lg shadow-zinc-900/10 hover:shadow-xl hover:shadow-zinc-900/15 hover:-translate-y-0.5">
+            <Link to={isAuthenticated() ? '/shop' : '/login'} className="group flex items-center gap-1.5 rounded-full bg-ink px-6 py-3 text-sm font-medium text-white shadow-lg shadow-zinc-900/10 hover:shadow-xl hover:shadow-zinc-900/15 hover:-translate-y-0.5">
               Try AI Shopping
               <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
             </Link>

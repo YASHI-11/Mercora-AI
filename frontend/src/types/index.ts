@@ -53,6 +53,24 @@ export interface Order {
   created_at: string
 }
 
+export interface Invoice {
+  invoice_number: string
+  issued_at: string
+  order_id: string
+  customer: { name: string; address: string; phone: string; email: string }
+  delivery: { name: string; address: string; phone: string }
+  items: { product_id: string; name: string; quantity: number; price: number }[]
+  subtotal: number
+  discount: number
+  total: number
+  payment: {
+    status: string
+    razorpay_order_id: string | null
+    razorpay_payment_id: string | null
+    paid_at: string | null
+  }
+}
+
 export interface ShoppingAgentResponse {
   reply: string
   products: Product[]

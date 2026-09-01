@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { CheckCircle2, XCircle, Loader2, ShieldCheck } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { CheckCircle2, XCircle, Loader2, ShieldCheck, FileText } from 'lucide-react'
 import { api, getCustomerId } from '../lib/api'
 import { useCart } from '../hooks/useCart'
 
@@ -27,12 +27,14 @@ export default function Checkout() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [orderId, setOrderId] = useState<string | null>(null)
 
   async function startPayment() {
     setStatus('processing')
     setErrorMsg('')
     try {
       const { data } = await api.post('/payments/create-order', { customer_id: customerId })
+      setOrderId(data.order_id)
 
       if (data.mock) {
         // Razorpay not configured server-side: simulate a successful test payment deterministically.
@@ -99,6 +101,11 @@ export default function Checkout() {
           <button onClick={() => navigate('/orders')} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">View Orders</button>
           <button onClick={() => navigate('/shop')} className="rounded-full border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:border-zinc-300">Continue Shopping</button>
         </div>
+        {orderId && (
+          <Link to={`/orders/${orderId}/invoice`} className="mt-4 flex items-center justify-center gap-1.5 text-sm font-medium text-gold-600 hover:text-gold-700">
+            <FileText size={14} /> View Invoice
+          </Link>
+        )}
       </div>
     )
   }

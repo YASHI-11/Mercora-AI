@@ -25,11 +25,12 @@ Frontend (from `frontend/`):
 npm install
 npm run dev       # http://localhost:5173, proxies /api -> http://localhost:8000 (see vite.config.ts)
 npm run build     # runs `tsc -b` then vite build — treat TS errors as build failures
+npm run lint      # oxlint
 ```
 
 MongoDB: local instance or `docker run -d --name mercora-mongo -p 27017:27017 mongo:7`. Connection string comes from `.env` (`MONGODB_URI`, `DATABASE_NAME`) at the repo root, read by `backend/app/config.py`.
 
-There is no lint script configured for either side; rely on `tsc -b` (frontend) and pytest (backend) as the correctness gates.
+There is no backend lint script configured; rely on `tsc -b`/`oxlint` (frontend) and pytest (backend) as the correctness gates.
 
 ## Architecture
 
@@ -52,6 +53,10 @@ There is no lint script configured for either side; rely on `tsc -b` (frontend) 
 ## Environment
 
 `.env` at repo root (see `.env.example`): `MONGODB_URI`, `DATABASE_NAME`, `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` (blank = mock payment mode), `LLM_API_KEY`/`LLM_PROVIDER` (blank/`none` = deterministic fallback NLU), `JWT_SECRET`, `FRONTEND_URL`, `BACKEND_URL`. Never commit real secrets into `.env` — it's gitignored, but double-check before any commit that touches it.
+
+## Deployment
+
+Three pieces, detailed in `DEPLOYMENT.md`: MongoDB Atlas (database), Railway (backend, via `backend/Dockerfile`, which reads `$PORT` at runtime), Vercel (frontend static build, root vercel.json handles the `/api` rewrite to the backend service). The frontend reads `VITE_API_BASE_URL` at build time for the deployed API origin. `LLM_PROVIDER=ollama` only works locally (no Ollama process on Railway) — deployed environments need `gemini`, `openai`, or `anthropic` with a real `LLM_API_KEY`, or the app silently falls back to the deterministic NLU parser.
 
 ## Windows-specific notes
 
