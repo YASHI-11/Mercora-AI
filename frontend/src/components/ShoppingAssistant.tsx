@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Sparkles, Send, Plus, Check, Star, MessageSquarePlus } from 'lucide-react'
+import { Sparkles, Send, Plus, Check, Star, MessageSquarePlus, AlertTriangle, X } from 'lucide-react'
 import { api, getCustomerId, getSessionId, resetSessionId } from '../lib/api'
 import { useCart } from '../hooks/useCart'
 import { useChatHistory } from '../hooks/useChatHistory'
@@ -11,6 +11,15 @@ const GREETING: ChatMessage = {
   text: "Hi! Tell me what you're shopping for — e.g. \"wireless headphones under ₹4000 for gaming\".",
 }
 
+/** The backend answers each turn with an llm_status; anything other than
+ * 'live' means the AI provider didn't handle it and the deterministic
+ * keyword parser did, which the customer should be told about rather than
+ * silently getting weaker results. */
+const LLM_FALLBACK_NOTICES: Record<string, string> = {
+  fallback_error: 'AI service unavailable — falling back to keyword search, so results may be less precise.',
+  fallback_not_configured: 'No AI provider configured — using keyword search, so results may be less precise.',
+}
+
 export default function ShoppingAssistant() {
   const [messages, setMessages] = useChatHistory<ChatMessage>('mercora_shopping_chat', [GREETING])
   const [input, setInput] = useState('')
@@ -18,6 +27,7 @@ export default function ShoppingAssistant() {
   const [addingId, setAddingId] = useState<string | null>(null)
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set())
   const [sessionId, setSessionId] = useState(() => getSessionId('shopping'))
+  const [llmNotice, setLlmNotice] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { invalidate } = useCart()
   const customerId = getCustomerId()
@@ -29,6 +39,7 @@ export default function ShoppingAssistant() {
     setAddingId(null)
     setAddedIds(new Set())
     setInput('')
+    setLlmNotice(null)
   }
 
   useEffect(() => {
@@ -46,6 +57,13 @@ export default function ShoppingAssistant() {
         message: text, customer_id: customerId, session_id: sessionId,
       })
       setMessages((m) => [...m, { role: 'assistant', text: data.reply, products: data.products, crossSell: data.cross_sell }])
+      const notice = data.llm_status ? LLM_FALLBACK_NOTICES[data.llm_status] : undefined
+      if (notice) {
+        console.warn(`[Mercora] LLM fallback active (llm_status=${data.llm_status}). ${notice}`)
+        setLlmNotice(notice)
+      } else {
+        setLlmNotice(null)
+      }
       if (data.redirect_to_checkout) {
         invalidate()
         setTimeout(() => navigate('/checkout'), 1200)
@@ -91,6 +109,16 @@ export default function ShoppingAssistant() {
           <MessageSquarePlus size={13} /> New chat
         </button>
       </div>
+      {llmNotice && (
+        <div className="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[11px] leading-snug text-amber-800">
+          <AlertTriangle size={13} className="mt-px shrink-0 text-amber-600" />
+          <span className="flex-1">{llmNotice}</span>
+          <button onClick={() => setLlmNotice(null)} title="Dismiss"
+                  className="shrink-0 text-amber-500 hover:text-amber-800">
+            <X size={12} />
+          </button>
+        </div>
+      )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
         {messages.map((m, i) => (
           <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>

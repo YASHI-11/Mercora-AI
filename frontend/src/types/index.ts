@@ -75,9 +75,12 @@ export interface ShoppingAgentResponse {
   reply: string
   products: Product[]
   cross_sell: Product[]
-  intent: { category: string | null; budget: number | null; keywords: string[] }
+  intent: { category: string | null; budget: number | null; min_budget: number | null; keywords: string[] }
   session_id: string
   redirect_to_checkout?: boolean
+  /** 'live' when the configured LLM answered this turn; a 'fallback_*' value
+   * means it silently degraded to the deterministic keyword parser. */
+  llm_status?: 'live' | 'fallback_not_configured' | 'fallback_error' | null
 }
 
 export interface ChatMessage {

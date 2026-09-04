@@ -7,6 +7,8 @@ execution is ever allowed. Cart mutation only happens on explicit customer
 action (the caller passes an intent flag); a payment is never triggered
 from within the agent -- that is a separate, explicit checkout step.
 """
+import re
+
 from app.database.connection import get_db
 from app.ml.recommendation import RecommendationEngine
 from app.agents.llm_provider import parse_shopping_intent_llm, generate_conversational_reply
@@ -19,39 +21,67 @@ async def _all_products() -> list[dict]:
     return await db.products.find({}).to_list(length=1000)
 
 
-async def search_catalog(category: str | None, budget: float | None, keywords: list[str]) -> list[dict]:
+async def search_catalog(category: str | None, budget: float | None, keywords: list[str],
+                          min_budget: float | None = None) -> list[dict]:
     """Category is a *preference*, not a strict filter: some products (e.g.
     bundle-companion accessories) are tagged with their parent category for
     association mining purposes even though a keyword like "mouse" or
     "charger" describes them more precisely than the category does. So we
     match on category OR any keyword appearing in the product's name/tags,
-    then let TF-IDF ranking (rank_by_intent) sort by actual relevance."""
-    db = get_db()
-    and_filters: list[dict] = []
-    if budget:
-        and_filters.append({"price": {"$lte": budget}})
+    then let TF-IDF ranking (rank_by_intent) sort by actual relevance.
 
-    match_clauses: list[dict] = []
+    Deliberately does NOT fall back to an unrelated in-budget product list
+    when category/keywords were given but matched nothing (e.g. "tshirt" --
+    not in this catalog at all): that used to silently substitute whatever
+    was cheap regardless of relevance (e.g. recommending headphones for a
+    "tshirt" search), which is misleading. An empty result here means the
+    caller should tell the customer the item isn't available."""
+    db = get_db()
+    price_filter: dict = {}
+    if budget:
+        price_filter["$lte"] = budget
+    if min_budget:
+        price_filter["$gte"] = min_budget
+    price_clause: list[dict] = [{"price": price_filter}] if price_filter else []
+
+    keyword_clauses: list[dict] = []
+    for kw in keywords:
+        pattern = re.escape(kw)
+        keyword_clauses.append({"name": {"$regex": pattern, "$options": "i"}})
+        keyword_clauses.append({"tags": {"$regex": pattern, "$options": "i"}})
+
+    # When the customer named a concrete product term, that term has to match
+    # at least one product before the category clause below is allowed to
+    # widen the results. The LLM cheerfully guesses a category for things this
+    # store doesn't sell ("tshirt"/"shirt" -> "General Gifts"), and without
+    # this guard that guess alone would dump an entire unrelated category on
+    # someone who asked for a shirt.
+    if keyword_clauses:
+        keyword_query: dict = {"$and": price_clause + [{"$or": keyword_clauses}]} \
+            if price_clause else {"$or": keyword_clauses}
+        if not await db.products.find_one(keyword_query):
+            return []
+
+    match_clauses = list(keyword_clauses)
     if category:
         match_clauses.append({"category": category})
-    for kw in keywords:
-        match_clauses.append({"name": {"$regex": kw, "$options": "i"}})
-        match_clauses.append({"tags": {"$regex": kw, "$options": "i"}})
-    if match_clauses:
-        and_filters.append({"$or": match_clauses})
 
+    and_filters = price_clause + ([{"$or": match_clauses}] if match_clauses else [])
     query = {"$and": and_filters} if and_filters else {}
-    products = await db.products.find(query).to_list(length=200)
-    if not products:
-        products = await db.products.find({"price": {"$lte": budget}} if budget else {}).to_list(length=200)
-    return products
+    return await db.products.find(query).to_list(length=200)
 
 
 async def get_recommendations(products: list[dict], query_text: str, top_k: int = 6) -> list[dict]:
+    """An empty `products` means search_catalog matched nothing. Ranking the
+    whole catalog in that case (the previous behaviour) surfaced irrelevant,
+    out-of-budget items for searches the store can't satisfy -- e.g. "tshirt
+    above 4000" returning ₹220 headphones -- so an empty search stays empty
+    and the caller reports the item as unavailable."""
+    if not products:
+        return []
     all_products = await _all_products()
     engine = RecommendationEngine(all_products)
-    candidates = products if products else all_products
-    return engine.rank_by_intent(candidates, query_text, top_k=top_k)
+    return engine.rank_by_intent(products, query_text, top_k=top_k)
 
 
 async def get_cross_sell_products(product_id: str, top_k: int = 3) -> list[dict]:
@@ -201,7 +231,7 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
             elif wants_more:
                 prev_intent = prev.get("intent") or {}
                 candidates = await search_catalog(prev_intent.get("category"), prev_intent.get("budget"),
-                                                    prev_intent.get("keywords") or [])
+                                                    prev_intent.get("keywords") or [], prev_intent.get("min_budget"))
                 ranked = await get_recommendations(candidates, query_text, top_k=20)
                 remaining = [p for p in ranked if p["_id"] not in all_shown_ids][:4]
                 if remaining:
@@ -225,7 +255,7 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
     await events.track("search", customer_id, {"query": message, "intent": intent})
 
     if not intent.get("is_shopping_query"):
-        reply = await generate_conversational_reply(message)
+        reply, chat_llm_status = await generate_conversational_reply(message)
         await db.agent_conversations.insert_one({
             "_id": new_id("conv"),
             "session_id": session_id,
@@ -238,21 +268,59 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
             "products_shown": [],
             "created_at": now_iso(),
         })
-        return {"reply": reply, "products": [], "intent": intent, "cross_sell": []}
+        return {"reply": reply, "products": [], "intent": intent, "cross_sell": [],
+                "llm_status": chat_llm_status}
 
-    candidates = await search_catalog(intent["category"], intent["budget"], intent["keywords"])
-    ranked = await get_recommendations(candidates, message, top_k=6)
+    candidates = await search_catalog(intent["category"], intent["budget"], intent["keywords"],
+                                       intent.get("min_budget"))
+    # Rank against the spell-corrected wording when the LLM fixed a typo, so
+    # "labtop" ranks against real laptops rather than matching nothing.
+    corrected = intent.get("corrected_message")
+    search_text = corrected or message
+    ranked = await get_recommendations(candidates, search_text, top_k=6)
 
     reply_lines = []
+    if corrected:
+        reply_lines.append(f"Showing results for \"{corrected}\".")
     if not ranked:
-        reply_lines.append(
-            "I couldn't find products matching that exactly. Try adjusting your budget or category."
-        )
+        # Distinguish "we don't stock this at all" from "we stock it, just not
+        # at that price" -- otherwise a customer asking for headphones above
+        # ₹500000 would wrongly be told we don't sell headphones.
+        had_price_constraint = bool(intent["budget"] or intent.get("min_budget"))
+        without_price = await search_catalog(
+            intent["category"], None, intent["keywords"], None) if had_price_constraint else []
+        subject = " ".join(intent["keywords"]) or (intent["category"] or "")
+        if without_price:
+            price_txt = []
+            if intent.get("min_budget"):
+                price_txt.append(f"above ₹{intent['min_budget']:.0f}")
+            if intent["budget"]:
+                price_txt.append(f"under ₹{intent['budget']:.0f}")
+            reply_lines.append(
+                f"I don't have any \"{subject}\" {' and '.join(price_txt)}."
+            )
+            # Naming the nearest thing we DO stock keeps this honest: a loose
+            # keyword hit (e.g. "t-shirt" matching a toy mouse wearing one) is
+            # then obvious to the customer instead of implying we sell shirts.
+            closest = await get_recommendations(without_price, search_text, top_k=2)
+            if closest:
+                reply_lines.append("The closest I have:")
+                reply_lines.extend(f"• {format_product_summary(p)}" for p in closest)
+        elif intent["category"] or intent["keywords"]:
+            reply_lines.append(f"Sorry, we don't currently have \"{subject}\" available.")
+            if categories:
+                reply_lines.append(f"We do carry: {', '.join(sorted(categories))}.")
+        else:
+            reply_lines.append("I couldn't find anything in that price range. Try a different budget?")
     else:
         constraint_bits = []
         if intent["category"]:
             constraint_bits.append(intent["category"].lower())
-        if intent["budget"]:
+        if intent["budget"] and intent.get("min_budget"):
+            constraint_bits.append(f"between ₹{intent['min_budget']:.0f} and ₹{intent['budget']:.0f}")
+        elif intent.get("min_budget"):
+            constraint_bits.append(f"above ₹{intent['min_budget']:.0f}")
+        elif intent["budget"]:
             constraint_bits.append(f"under ₹{intent['budget']:.0f}")
         constraint_txt = " ".join(constraint_bits) if constraint_bits else "your request"
         reply_lines.append(f"Here are the best matches I found for {constraint_txt}:")
@@ -292,7 +360,7 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
         "reply": reply,
         "intent": intent,
         "products_shown": [p["_id"] for p in (shown if ranked else [])],
-        "query_text": message,
+        "query_text": search_text,
         "all_shown_ids": [p["_id"] for p in (shown if ranked else [])],
         "created_at": now_iso(),
     })
@@ -308,4 +376,5 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
         "products": ranked,
         "intent": intent,
         "cross_sell": final_cross_sell,
+        "llm_status": intent.get("llm_status"),
     }

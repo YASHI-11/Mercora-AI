@@ -252,7 +252,19 @@ def get_llm_provider() -> LLMProvider:
     return _provider
 
 
+# Whether a given turn was actually answered by the configured LLM, or quietly
+# degraded to the deterministic keyword parser. Surfaced all the way to the UI
+# (and logged server-side) so a dead/expired API key or a provider outage is
+# visible instead of silently producing worse results.
+LLM_STATUS_LIVE = "live"
+LLM_STATUS_NOT_CONFIGURED = "fallback_not_configured"
+LLM_STATUS_ERROR = "fallback_error"
+
 PRICE_RE = re.compile(r"(?:under|below|less than|<=?|within)\s*(?:rs\.?|inr|₹)?\s*([\d,]+)", re.I)
+MIN_PRICE_RE = re.compile(
+    r"\b(?:more than|greater than|at least|starting from|starting at|above|over|min(?:imum)?|>=?)"
+    r"\s*(?:rs\.?|inr|₹)?\s*([\d,]+)", re.I,
+)
 CATEGORY_KEYWORDS = {
     "headphone": "Audio", "earphone": "Audio", "earbud": "Audio", "speaker": "Audio",
     "laptop": "Laptops", "notebook": "Laptops",
@@ -267,7 +279,8 @@ CATEGORY_KEYWORDS = {
 
 STOPWORDS = {"i", "need", "want", "a", "for", "the", "under", "below", "with", "my",
              "an", "to", "of", "in", "on", "less", "than", "rs", "inr", "please", "and",
-             "show", "me", "give", "looking", "some", "any", "good", "best"}
+             "show", "me", "give", "looking", "some", "any", "good", "best",
+             "more", "over", "above", "greater", "least", "starting", "minimum", "min", "at"}
 GREETING_WORDS = {"hi", "hii", "hiii", "hello", "hey", "heyy", "yo", "sup", "hola", "there",
                    "thanks", "thank", "thankyou", "bye", "goodbye", "ok", "okay", "sure",
                    "cool", "nice", "great", "good", "morning", "evening", "afternoon",
@@ -283,45 +296,68 @@ def parse_shopping_intent(message: str) -> dict:
     price_match = PRICE_RE.search(text)
     budget = float(price_match.group(1).replace(",", "")) if price_match else None
 
+    min_price_match = MIN_PRICE_RE.search(text)
+    min_budget = float(min_price_match.group(1).replace(",", "")) if min_price_match else None
+
     category = None
     for kw, cat in CATEGORY_KEYWORDS.items():
         if kw in text:
             category = cat
             break
 
+    # Bare numbers are price constraints (already captured as budget /
+    # min_budget above), never product search terms -- leaving them in made
+    # search_catalog regex-match them against product names/tags.
     keywords = [
         w.strip(".,!?") for w in text.split()
         if w.strip(".,!?") not in STOPWORDS and w.strip(".,!?") not in GREETING_WORDS
         and len(w.strip(".,!?")) > 2
+        and not w.strip(".,!?").replace(",", "").replace("₹", "").isdigit()
     ]
 
-    is_shopping_query = bool(category or budget or keywords)
+    is_shopping_query = bool(category or budget or min_budget or keywords)
 
-    return {"category": category, "budget": budget, "keywords": keywords, "is_shopping_query": is_shopping_query}
+    return {"category": category, "budget": budget, "min_budget": min_budget,
+            "keywords": keywords, "is_shopping_query": is_shopping_query}
 
 
 async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict:
     """Uses the configured LLM provider (Anthropic or local Ollama) to parse
     shopping intent when one is configured and live; otherwise -- or if the
     LLM call fails or returns something unparseable -- falls back to the
-    deterministic keyword/regex parser so the assistant never breaks."""
+    deterministic keyword/regex parser so the assistant never breaks.
+
+    The returned intent carries an "llm_status" so callers (and ultimately the
+    UI) can tell a real LLM answer apart from a silent fallback."""
     provider = get_llm_provider()
     if not provider.is_live:
-        return parse_shopping_intent(message)
+        logger.info(
+            "LLM not configured (LLM_PROVIDER=%s) -- using deterministic keyword parser",
+            settings.llm_provider,
+        )
+        return {**parse_shopping_intent(message), "llm_status": LLM_STATUS_NOT_CONFIGURED}
 
     system_prompt = (
         "You are the intent parser for an e-commerce shopping assistant. "
         "Given a customer's message, extract shopping intent as strict JSON only, "
         "no markdown, no commentary, matching exactly this shape: "
-        '{"is_shopping_query": boolean, "category": string|null, "budget": number|null, '
-        '"keywords": string[]}. '
+        '{"is_shopping_query": boolean, "corrected_message": string, "category": string|null, '
+        '"budget": number|null, "min_budget": number|null, "keywords": string[]}. '
+        "corrected_message is the customer's message with spelling and typing mistakes "
+        "fixed (e.g. \"labtop avobe 3000\" -> \"laptop above 3000\"), preserving their "
+        "meaning and wording otherwise; return the message unchanged if there is nothing "
+        "to correct. Never invent a different product from the one they asked for. "
         "is_shopping_query is true only if the customer is actually asking to find, browse, "
         "compare, or buy a product -- false for greetings, thanks, small talk, or anything "
         "that isn't a product request (e.g. \"hi\", \"thanks\", \"how are you\"). "
         f"category must be one of {categories} or null if unclear or general. "
-        "budget is the maximum price in rupees the customer mentioned, or null. "
+        "budget is the maximum price in rupees the customer mentioned (e.g. \"under 4000\"), or null. "
+        "min_budget is the minimum price in rupees the customer mentioned (e.g. \"above 4000\", "
+        "\"more than 4000\"), or null. "
         "keywords are the important product-search terms from the message (product type, "
-        "brand, use-case), lowercase, excluding filler words. keywords must be [] when "
+        "brand, use-case), lowercase, excluding filler words, and spelled correctly using "
+        "the standard English product term (e.g. \"labtop\" -> \"laptop\", \"headphons\" -> "
+        "\"headphones\") -- never pass a misspelling through. keywords must be [] when "
         "is_shopping_query is false."
     )
     try:
@@ -337,6 +373,8 @@ async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict
             category = None
         budget = parsed.get("budget")
         budget = float(budget) if isinstance(budget, (int, float)) else None
+        min_budget = parsed.get("min_budget")
+        min_budget = float(min_budget) if isinstance(min_budget, (int, float)) else None
         # The LLM sometimes returns a keyword as a whole multi-word phrase
         # (e.g. "wireless headphone") instead of individual words; downstream
         # search_catalog() does a per-keyword regex match against product
@@ -361,18 +399,29 @@ async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict
             deterministic_category = parse_shopping_intent(message).get("category")
             if deterministic_category:
                 category = deterministic_category
-        return {"category": category, "budget": budget, "keywords": keywords,
-                "is_shopping_query": is_shopping_query}
-    except Exception:
-        logger.warning("LLM intent parsing failed, falling back to deterministic parser", exc_info=True)
-        return parse_shopping_intent(message)
+        corrected = parsed.get("corrected_message")
+        corrected = corrected.strip() if isinstance(corrected, str) and corrected.strip() else None
+        if corrected and corrected.lower() == message.strip().lower():
+            corrected = None  # nothing was actually misspelled
+        return {"category": category, "budget": budget, "min_budget": min_budget,
+                "keywords": keywords, "is_shopping_query": is_shopping_query,
+                "corrected_message": corrected, "llm_status": LLM_STATUS_LIVE}
+    except Exception as e:
+        logger.error(
+            "LLM INTENT PARSING FAILED (provider=%s, model=%s): %s: %s -- "
+            "falling back to the deterministic keyword parser (results will be less precise)",
+            settings.llm_provider, settings.openai_model, type(e).__name__, e, exc_info=True,
+        )
+        return {**parse_shopping_intent(message), "llm_status": LLM_STATUS_ERROR}
 
 
-async def generate_conversational_reply(message: str) -> str:
+async def generate_conversational_reply(message: str) -> tuple[str, str]:
     """Used when the customer's message isn't a product search (greeting,
     thanks, small talk, etc.) -- responds naturally instead of dumping
     unrelated products. Uses the live LLM provider when configured, falling
-    back to a friendly canned reply otherwise or if the call fails."""
+    back to a friendly canned reply otherwise or if the call fails.
+
+    Returns (reply, llm_status) so the caller can surface a silent fallback."""
     fallback_reply = (
         "Hi! I'm Mercora, your shopping assistant. Tell me what you're looking for -- "
         "e.g. \"wireless headphones under ₹4000 for gaming\" -- and I'll find the best matches "
@@ -380,7 +429,11 @@ async def generate_conversational_reply(message: str) -> str:
     )
     provider = get_llm_provider()
     if not provider.is_live:
-        return fallback_reply
+        logger.info(
+            "LLM not configured (LLM_PROVIDER=%s) -- using canned conversational reply",
+            settings.llm_provider,
+        )
+        return fallback_reply, LLM_STATUS_NOT_CONFIGURED
 
     system_prompt = (
         "You are Mercora, a friendly, concise AI shopping assistant for an online store "
@@ -392,7 +445,10 @@ async def generate_conversational_reply(message: str) -> str:
     try:
         reply = await provider.complete(system_prompt, message)
         reply = reply.strip()
-        return reply if reply else fallback_reply
-    except Exception:
-        logger.warning("LLM conversational reply failed, using fallback", exc_info=True)
-        return fallback_reply
+        return (reply, LLM_STATUS_LIVE) if reply else (fallback_reply, LLM_STATUS_ERROR)
+    except Exception as e:
+        logger.error(
+            "LLM CONVERSATIONAL REPLY FAILED (provider=%s): %s: %s -- using canned fallback reply",
+            settings.llm_provider, type(e).__name__, e, exc_info=True,
+        )
+        return fallback_reply, LLM_STATUS_ERROR

@@ -27,6 +27,16 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.agents.llm_provider import get_llm_provider
+    provider = get_llm_provider()
+    if provider.is_live:
+        logger.info("LLM provider active: %s (a failed call falls back to the "
+                    "deterministic keyword parser and is logged as an error).",
+                    settings.llm_provider)
+    else:
+        logger.warning("No live LLM provider (LLM_PROVIDER=%s) -- the assistant will use the "
+                        "deterministic keyword parser for every message.", settings.llm_provider)
+
     connected = await check_connection()
     if connected:
         await ensure_indexes()
@@ -57,7 +67,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.get("/api/health")
 async def health():
     db_ok = await check_connection()
-    return {"status": "ok" if db_ok else "degraded", "database": "connected" if db_ok else "unreachable"}
+    from app.agents.llm_provider import get_llm_provider
+    provider = get_llm_provider()
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "database": "connected" if db_ok else "unreachable",
+        "llm_provider": settings.llm_provider,
+        "llm_live": provider.is_live,
+    }
 
 
 for router in [

@@ -13,6 +13,26 @@ def test_parse_intent_no_budget():
     assert intent["budget"] is None
 
 
+def test_parse_intent_min_budget():
+    intent = parse_shopping_intent("I want shoes above 4000")
+    assert intent["min_budget"] == 4000
+    assert intent["budget"] is None
+    assert intent["is_shopping_query"] is True
+
+
+def test_parse_intent_unrecognized_category_has_no_category():
+    intent = parse_shopping_intent("give me a tshirt less than 5000")
+    assert intent["category"] is None
+    assert intent["budget"] == 5000
+    assert "tshirt" in intent["keywords"]
+
+
+def test_price_numbers_are_not_search_keywords():
+    intent = parse_shopping_intent("give me tshirt above 4000")
+    assert intent["min_budget"] == 4000
+    assert intent["keywords"] == ["tshirt"]
+
+
 def test_fallback_provider_used_without_key(monkeypatch):
     import app.agents.llm_provider as mod
     mod._provider = None
