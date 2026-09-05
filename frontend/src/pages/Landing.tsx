@@ -16,7 +16,13 @@ export default function Landing() {
     <div>
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 -top-24 h-96 bg-[radial-gradient(ellipse_at_top,_rgba(179,129,47,0.10),transparent_65%)]" />
-        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 pt-24 pb-20 text-center">
+        <div className="relative px-6 sm:px-8 pt-8">
+          <Link to="/" className="inline-flex items-center gap-4 text-zinc-900">
+            <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-ink text-gold-300 text-2xl font-display italic shadow-sm">M</span>
+            <span className="font-display italic text-4xl tracking-tight">Mercora AI</span>
+          </Link>
+        </div>
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 pt-12 pb-20 text-center">
           <h1 className="text-5xl sm:text-6xl text-zinc-900 tracking-tight leading-[1.08]">
             Shop smarter.<br />
             <span className="font-display italic text-gold-600">Grow faster.</span>
