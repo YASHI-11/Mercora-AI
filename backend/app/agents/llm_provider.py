@@ -424,7 +424,7 @@ async def generate_conversational_reply(message: str) -> tuple[str, str]:
     Returns (reply, llm_status) so the caller can surface a silent fallback."""
     fallback_reply = (
         "Hi! I'm Mercora, your shopping assistant. Tell me what you're looking for -- "
-        "e.g. \"wireless headphones under ₹4000 for gaming\" -- and I'll find the best matches "
+        "e.g. \"wireless keyboard under ₹4000 for gaming\" -- and I'll find the best matches "
         "and explain why."
     )
     provider = get_llm_provider()
