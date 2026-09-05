@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.database.connection import get_db
-from app.agents.growth_agent import get_revenue_metrics, get_product_metrics, get_customer_segments
+from app.agents.growth_agent import get_revenue_metrics, get_product_metrics, get_customer_segments, fetch_paid_orders, fetch_products
 from app.config import get_settings
 from datetime import datetime, timedelta, timezone
 
@@ -11,12 +11,11 @@ settings = get_settings()
 @router.get("/overview")
 async def overview(merchant_id: str | None = None):
     mid = merchant_id or settings.default_merchant_id
-    revenue = await get_revenue_metrics(mid)
     db = get_db()
-    ai_orders = await db.orders.count_documents({
-        "merchant_id": mid, "payment_status": "paid", "ai_attributed": True,
-    })
-    all_orders = await db.orders.find({"merchant_id": mid, "payment_status": "paid"}).to_list(length=10000)
+    all_orders = await fetch_paid_orders(mid)
+    ai_orders = sum(1 for o in all_orders if o.get("ai_attributed"))
+    carts_started = await db.cart_events.count_documents({"data.event": "checkout_started"})
+    revenue = get_revenue_metrics(all_orders, carts_started)
     ai_revenue = sum(o.get("total", 0) for o in all_orders if o.get("ai_attributed"))
     opportunities_count = await db.growth_opportunities.count_documents({"merchant_id": mid, "status": "pending"})
     return {
@@ -54,9 +53,9 @@ async def timeseries(merchant_id: str | None = None, days: int = 30):
 @router.get("/analytics/categories")
 async def category_performance(merchant_id: str | None = None):
     mid = merchant_id or settings.default_merchant_id
-    metrics = await get_product_metrics(mid)
-    db = get_db()
-    products = await db.products.find({"merchant_id": mid}).to_list(length=1000)
+    products = await fetch_products(mid)
+    orders = await fetch_paid_orders(mid)
+    metrics = get_product_metrics(products, orders)
     by_cat: dict[str, dict] = {}
     for p in products:
         cat = p["category"]
@@ -75,10 +74,13 @@ async def category_performance(merchant_id: str | None = None):
 @router.get("/analytics/products")
 async def product_analytics(merchant_id: str | None = None):
     mid = merchant_id or settings.default_merchant_id
-    return await get_product_metrics(mid)
+    products = await fetch_products(mid)
+    orders = await fetch_paid_orders(mid)
+    return get_product_metrics(products, orders)
 
 
 @router.get("/analytics/segments")
 async def segments(merchant_id: str | None = None):
     mid = merchant_id or settings.default_merchant_id
-    return await get_customer_segments(mid)
+    orders = await fetch_paid_orders(mid)
+    return await get_customer_segments(orders)

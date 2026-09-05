@@ -1,70 +1,80 @@
 # Deploying Mercora AI
 
-Three pieces: **MongoDB Atlas** (database), **Railway** (backend, via the
-`backend/Dockerfile`), **Vercel** (frontend, static Vite build). Verified
-locally: the backend Docker image builds and serves `/api/health` correctly;
-the frontend build is clean with the new `VITE_API_BASE_URL` support.
+Live deployment topology (as actually configured, not the earlier
+Railway-based plan this doc used to describe): a **single Vercel project**
+running both services via the root `vercel.json` (Vercel Services) --
+`frontend` (static Vite build) and `backend` (the FastAPI app at
+`backend/app/main.py`, run as a Python function) -- plus **MongoDB Atlas**
+for the database. `/api/*` requests are routed to the backend service,
+everything else to the frontend.
+
+## ⚠ Required: set a real LLM_PROVIDER on Vercel
+
+**This has already caused a production incident** (`/api/agent/growth`
+returning 500 `FUNCTION_INVOCATION_FAILED`). If the Vercel project's
+`LLM_PROVIDER` env var is `ollama` (copied from local `.env`), every LLM call
+tries to reach `localhost:11434`, which doesn't exist on Vercel -- confirmed
+by reproducing the exact failure locally: a single hung call ate the full
+30s `httpx` timeout, and the growth agent makes up to two such calls per
+request. The platform kills the function mid-hang before the code's own
+try/except fallback ever runs, producing exactly this crash instead of a
+graceful deterministic-fallback reply.
+
+**Fix**: on the Vercel project's environment variables, set:
+```
+LLM_PROVIDER=gemini      # or openai / anthropic
+LLM_API_KEY=<a real key for that provider>
+```
+`ollama` only ever works on your own machine where `ollama serve` is
+actually running -- never set it on any hosted deployment. Two defense-in-
+depth mitigations already shipped in code regardless: hosted-provider HTTP
+calls now time out after 10s instead of 30s (`HOSTED_API_TIMEOUT` in
+`llm_provider.py`), and the growth agent now fetches orders/products once per
+request instead of up to 4 times (was independently measured at ~7s per
+full-collection fetch against the production dataset).
 
 ## 1. MongoDB Atlas
 
-Already set up if you've been using the Atlas URI in `.env` — reuse that
-cluster, or create a free M0 cluster at mongodb.com/cloud/atlas. You'll need
-the connection string for step 2. Whitelist `0.0.0.0/0` in Atlas's Network
-Access (or Railway's static outbound IPs if you want it tighter).
+Reuse the cluster already referenced by the Atlas URI in `.env` / Vercel's
+`MONGODB_URI`, or create a free M0 cluster at mongodb.com/cloud/atlas.
+Whitelist `0.0.0.0/0` in Atlas's Network Access (Vercel functions don't have
+fixed outbound IPs on most plans).
 
-## 2. Backend -> Railway
+## 2. Vercel environment variables (backend service)
 
-1. railway.app -> New Project -> Deploy from GitHub repo -> select this repo,
-   set the **root directory to `backend/`** (Railway auto-detects the
-   `Dockerfile` there, no build config needed).
-2. Set these environment variables on the Railway service:
-   ```
-   MONGODB_URI=<your Atlas connection string>
-   DATABASE_NAME=mercora
-   FRONTEND_URL=<filled in after step 3 -- your Vercel URL>
-   JWT_SECRET=<random string>
-   LLM_PROVIDER=gemini            # or openai / anthropic -- "ollama" won't work here, see note below
-   LLM_API_KEY=<your key>
-   RAZORPAY_KEY_ID=                # optional, blank = mock payment mode
-   RAZORPAY_KEY_SECRET=
-   ```
-   Don't set `PORT` -- Railway injects it automatically and the Dockerfile's
-   `CMD` already reads `$PORT`.
-3. Deploy. Note the generated `*.up.railway.app` URL -- that's your backend
-   URL, needed in step 3. Confirm it's live: `curl https://<that-url>/api/health`.
-4. **Seed the deployed database** once, from your machine, by pointing the
-   existing seed scripts at the Atlas URI (same one used above):
-   ```
-   cd backend && MONGODB_URI="<atlas uri>" DATABASE_NAME=mercora python scripts/seed_data.py
-   ```
-   (PowerShell: `$env:MONGODB_URI="<atlas uri>"; $env:DATABASE_NAME="mercora"; python scripts/seed_data.py`)
+```
+MONGODB_URI=<your Atlas connection string>
+DATABASE_NAME=mercora
+FRONTEND_URL=https://<this project's Vercel URL>
+JWT_SECRET=<random string>
+LLM_PROVIDER=gemini            # or openai / anthropic -- see warning above
+LLM_API_KEY=<your key>
+RAZORPAY_KEY_ID=                # optional, blank = mock payment mode
+RAZORPAY_KEY_SECRET=
+```
 
-## 3. Frontend -> Vercel
+## 3. Seed the deployed database (once, from your machine)
 
-1. vercel.com -> New Project -> import this repo, set **root directory to
-   `frontend/`** (Vercel auto-detects Vite; `vercel.json` already handles
-   SPA routing so client-side routes like `/shop/product/:id` don't 404 on
-   refresh).
-2. Set one build-time environment variable:
-   ```
-   VITE_API_BASE_URL=https://<your-railway-url>/api
-   ```
-3. Deploy. Take the resulting `*.vercel.app` URL and set it as `FRONTEND_URL`
-   back on the Railway service (step 2), then redeploy the backend so CORS
-   allows it.
+```
+cd backend && MONGODB_URI="<atlas uri>" DATABASE_NAME=mercora python scripts/seed_data.py
+```
+(PowerShell: `$env:MONGODB_URI="<atlas uri>"; $env:DATABASE_NAME="mercora"; python scripts/seed_data.py`)
 
-## LLM provider note
+## Alternative: split deployment (Railway + Vercel)
 
-`.env`'s `LLM_PROVIDER=ollama` only works because Ollama is running on your
-own machine -- there's no Ollama process on Railway. For deployment, set
-`LLM_PROVIDER` to `gemini`, `openai`, or `anthropic` with a real `LLM_API_KEY`.
-If you deploy without changing this, the app still works end-to-end (nothing
-crashes) but silently falls back to the deterministic keyword-based NLU
-parser instead of a live LLM, per the fallback design in `llm_provider.py`.
+`backend/Dockerfile` still exists and was verified to build and serve
+`/api/health` correctly, if you'd rather run the backend on Railway/Render
+instead of as a Vercel service -- deploy it there, set
+`VITE_API_BASE_URL=https://<backend-url>/api` as a Vercel build-time env var
+on the frontend service, and remove/ignore the root `vercel.json`'s
+`backend` service entry. Not the currently-live setup, but kept working as a
+documented option.
 
 ## Sanity checklist after deploying
 
-- `curl https://<railway-url>/api/health` -> `{"status":"ok","database":"connected"}`
-- Visit the Vercel URL, run a shopping search -- confirms `VITE_API_BASE_URL`
-  and CORS are both wired correctly.
+- `curl https://<vercel-url>/api/health` -> `{"status":"ok","database":"connected"}`
+- `curl -X POST https://<vercel-url>/api/agent/growth -H "content-type: application/json" -d '{"message":"how can I increase revenue?"}'`
+  should return within a few seconds, not time out.
+- Visit the site, run a shopping search and a growth-copilot question --
+  confirms routing, CORS, and the LLM provider are all correctly wired.
 - Check the Razorpay checkout flow completes (mock mode if no real keys set).

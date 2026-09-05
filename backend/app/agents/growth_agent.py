@@ -6,9 +6,12 @@ numbers, never mutates the catalog itself -- every action requires
 merchant approval and passes through server-side guardrails
 (app.services.guardrails) before anything is persisted.
 """
+import hashlib
 import json
 import logging
 import re
+
+from pymongo import ReplaceOne
 
 from app.agents.llm_provider import get_llm_provider
 from app.database.connection import get_db
@@ -20,15 +23,21 @@ from app.schemas.common import new_id, now_iso
 logger = logging.getLogger("mercora.growth_agent")
 
 
-async def get_revenue_metrics(merchant_id: str) -> dict:
+async def fetch_paid_orders(merchant_id: str) -> list[dict]:
     db = get_db()
-    orders = await db.orders.find({"merchant_id": merchant_id, "payment_status": "paid"}).to_list(length=10000)
+    return await db.orders.find({"merchant_id": merchant_id, "payment_status": "paid"}).to_list(length=10000)
+
+
+async def fetch_products(merchant_id: str) -> list[dict]:
+    db = get_db()
+    return await db.products.find({"merchant_id": merchant_id}).to_list(length=1000)
+
+
+def get_revenue_metrics(orders: list[dict], carts_started: int) -> dict:
     total_revenue = sum(o.get("total", 0) for o in orders)
     total_orders = len(orders)
     aov = total_revenue / total_orders if total_orders else 0
-    all_carts_started = await db.cart_events.count_documents(
-        {"data.event": "checkout_started"}
-    ) or total_orders
+    all_carts_started = carts_started or total_orders
     conversion_rate = (total_orders / max(all_carts_started, total_orders, 1)) * 100
     return {
         "total_revenue": round(total_revenue, 2),
@@ -38,11 +47,7 @@ async def get_revenue_metrics(merchant_id: str) -> dict:
     }
 
 
-async def get_product_metrics(merchant_id: str) -> dict:
-    db = get_db()
-    products = await db.products.find({"merchant_id": merchant_id}).to_list(length=1000)
-    orders = await db.orders.find({"merchant_id": merchant_id, "payment_status": "paid"}).to_list(length=10000)
-
+def get_product_metrics(products: list[dict], orders: list[dict]) -> dict:
     sales_count: dict[str, int] = {}
     revenue_by_product: dict[str, float] = {}
     for o in orders:
@@ -51,6 +56,7 @@ async def get_product_metrics(merchant_id: str) -> dict:
             sales_count[pid] = sales_count.get(pid, 0) + item["quantity"]
             revenue_by_product[pid] = revenue_by_product.get(pid, 0) + item["quantity"] * item["price"]
 
+    products = [dict(p) for p in products]
     for p in products:
         p["units_sold"] = sales_count.get(p["_id"], 0)
         p["revenue"] = round(revenue_by_product.get(p["_id"], 0), 2)
@@ -60,48 +66,51 @@ async def get_product_metrics(merchant_id: str) -> dict:
     return {"top_products": top_products, "low_conversion_products": low_products, "total_products": len(products)}
 
 
-async def get_association_rules(merchant_id: str) -> list[dict]:
-    db = get_db()
-    orders = await db.orders.find({"merchant_id": merchant_id, "payment_status": "paid"}).to_list(length=10000)
+def get_association_rules(orders: list[dict]) -> list[dict]:
     return mine_association_rules(orders)
 
 
-async def get_customer_segments(merchant_id: str) -> dict:
+async def get_customer_segments(orders: list[dict]) -> dict:
     db = get_db()
     customers = await db.customers.find({}).to_list(length=5000)
-    orders = await db.orders.find({"merchant_id": merchant_id, "payment_status": "paid"}).to_list(length=10000)
     return segment_customers(customers, orders)
 
 
-async def find_growth_opportunities(merchant_id: str, persist: bool = True) -> list[dict]:
-    db = get_db()
-    rules = await get_association_rules(merchant_id)
-    products = await db.products.find({"merchant_id": merchant_id}).to_list(length=1000)
-    products_by_id = {p["_id"]: p for p in products}
-    orders_count = await db.orders.count_documents({"merchant_id": merchant_id, "payment_status": "paid"})
+def _opportunity_doc_id(merchant_id: str, opp: dict) -> str:
+    """Deterministic id from the opportunity's natural key (merchant + type +
+    product set) so persisting is a single bulk upsert instead of a
+    find-then-write round trip per opportunity."""
+    key = f"{merchant_id}:{opp['type']}:{','.join(sorted(opp['products']))}"
+    return "opp_" + hashlib.sha1(key.encode()).hexdigest()[:20]
 
-    bundle_opps = build_bundle_opportunities(rules, products_by_id, max(orders_count, 1))
+
+async def find_growth_opportunities(products: list[dict], orders: list[dict], merchant_id: str,
+                                     persist: bool = True) -> list[dict]:
+    rules = get_association_rules(orders)
+    products_by_id = {p["_id"]: p for p in products}
+
+    bundle_opps = build_bundle_opportunities(rules, products_by_id, max(len(orders), 1))
     upsell_opps = build_upsell_opportunities(products)
     all_opps = bundle_opps + upsell_opps
     all_opps.sort(key=lambda o: o["score"], reverse=True)
 
-    if persist:
-        for opp in all_opps:
-            existing = await db.growth_opportunities.find_one({
-                "merchant_id": merchant_id, "type": opp["type"], "products": opp["products"],
-            })
-            if existing:
-                await db.growth_opportunities.update_one(
-                    {"_id": existing["_id"]}, {"$set": {**opp, "updated_at": now_iso()}}
-                )
-            else:
-                await db.growth_opportunities.insert_one({
-                    "_id": new_id("opp"),
+    if persist and all_opps:
+        db = get_db()
+        writes = [
+            ReplaceOne(
+                {"_id": _opportunity_doc_id(merchant_id, opp)},
+                {
+                    "_id": _opportunity_doc_id(merchant_id, opp),
                     "merchant_id": merchant_id,
                     "status": "pending",
                     "created_at": now_iso(),
                     **opp,
-                })
+                },
+                upsert=True,
+            )
+            for opp in all_opps
+        ]
+        await db.growth_opportunities.bulk_write(writes, ordered=False)
     return all_opps
 
 
@@ -198,7 +207,8 @@ async def classify_growth_intent(message: str, history_text: str = "") -> str:
         return fallback_guess
 
 
-async def _gather_domain_facts(intent: str, merchant_id: str, revenue: dict) -> tuple[dict, list[dict]]:
+async def _gather_domain_facts(intent: str, merchant_id: str, revenue: dict,
+                                products: list[dict], orders: list[dict]) -> tuple[dict, list[dict]]:
     """Fetches only the real, aggregate data relevant to the classified domain
     -- structured as JSON-able facts, not pre-written prose, so the LLM has
     room to decide how to phrase and organize the answer itself rather than
@@ -207,7 +217,7 @@ async def _gather_domain_facts(intent: str, merchant_id: str, revenue: dict) -> 
     opportunities: list[dict] = []
 
     if intent in ("opportunities", "revenue", "general"):
-        all_opps = await find_growth_opportunities(merchant_id, persist=True)
+        all_opps = await find_growth_opportunities(products, orders, merchant_id, persist=True)
         opportunities = all_opps[:3]
         facts["total_growth_opportunities_found"] = len(all_opps)
         facts["top_growth_opportunities"] = [
@@ -222,21 +232,21 @@ async def _gather_domain_facts(intent: str, merchant_id: str, revenue: dict) -> 
         ]
 
     if intent == "top_performers":
-        metrics = await get_product_metrics(merchant_id)
+        metrics = get_product_metrics(products, orders)
         facts["top_selling_products"] = [
             {"name": p["name"], "units_sold": p["units_sold"], "revenue_rupees": p["revenue"]}
             for p in metrics["top_products"] if p["units_sold"] > 0
         ][:5]
 
     if intent == "underperforming":
-        metrics = await get_product_metrics(merchant_id)
+        metrics = get_product_metrics(products, orders)
         facts["lowest_selling_products"] = [
             {"name": p["name"], "units_sold": p["units_sold"], "revenue_rupees": p["revenue"]}
             for p in metrics["low_conversion_products"]
         ][:5]
 
     if intent == "segments":
-        seg = await get_customer_segments(merchant_id)
+        seg = await get_customer_segments(orders)
         facts["customer_segments"] = [
             {"name": s["name"], "customer_count": s["size"], "avg_spend_rupees": s["avg_total_spent"]}
             for s in seg.get("segments", [])
@@ -337,17 +347,27 @@ async def answer_growth_question(message: str, merchant_id: str, session_id: str
     gathers only the relevant real data, then lets the configured LLM author
     a natural reply grounded strictly in that data -- so different questions,
     and follow-ups, actually get different, contextual answers."""
+    db = get_db()
     history = await _get_recent_growth_history(session_id)
     history_text = _format_history(history)
 
+    # Orders/products are fetched ONCE and threaded through every downstream
+    # computation below -- the previous version had get_revenue_metrics,
+    # get_association_rules, get_product_metrics, and get_customer_segments
+    # each independently re-querying the full orders collection, which with
+    # the full production catalog (23k+ orders) measured at ~7s per fetch
+    # and was enough on its own to blow a serverless function's time budget.
+    orders = await fetch_paid_orders(merchant_id)
+    products = await fetch_products(merchant_id)
+    carts_started = await db.cart_events.count_documents({"data.event": "checkout_started"})
+
     intent = await classify_growth_intent(message, history_text)
-    revenue = await get_revenue_metrics(merchant_id)
-    facts, opportunities = await _gather_domain_facts(intent, merchant_id, revenue)
+    revenue = get_revenue_metrics(orders, carts_started)
+    facts, opportunities = await _gather_domain_facts(intent, merchant_id, revenue, products, orders)
     facts["_intent"] = intent
 
     reply = await _compose_reply(message, history_text, facts)
 
-    db = get_db()
     await db.agent_conversations.insert_one({
         "_id": new_id("conv"),
         "session_id": session_id,

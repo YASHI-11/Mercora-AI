@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.database.connection import get_db
-from app.agents.growth_agent import find_growth_opportunities
+from app.agents.growth_agent import find_growth_opportunities, fetch_paid_orders, fetch_products
 from app.schemas.cart import OpportunityApproval
 from app.schemas.common import new_id, now_iso
 from app.services.guardrails import validate_bundle_discount, get_guardrails, set_guardrails
@@ -17,7 +17,9 @@ async def list_opportunities(merchant_id: str | None = None, refresh: bool = Fal
     mid = merchant_id or settings.default_merchant_id
     db = get_db()
     if refresh:
-        await find_growth_opportunities(mid, persist=True)
+        orders = await fetch_paid_orders(mid)
+        products = await fetch_products(mid)
+        await find_growth_opportunities(products, orders, mid, persist=True)
     query: dict = {"merchant_id": mid}
     if status:
         query["status"] = status

@@ -18,6 +18,14 @@ settings = get_settings()
 # long conversation history plus a large facts payload) blowing up cost on a single call.
 MAX_PROMPT_TOKENS = 6000
 
+# A hosted API that's actually reachable responds in a few seconds; this exists to bound
+# the OTHER case -- a misconfigured/unreachable provider (e.g. LLM_PROVIDER=ollama deployed
+# somewhere with no Ollama process, like a serverless host) -- so a single call fails fast
+# enough for the caller's own try/except fallback to run well within a typical serverless
+# function's time budget, instead of the platform hard-killing the whole request mid-hang
+# (observed in production: a hung call ate the full previous 30s timeout on its own).
+HOSTED_API_TIMEOUT = 10
+
 
 def estimate_tokens(text: str) -> int:
     """Rough, provider-agnostic token estimate (~4 characters per token for English,
@@ -48,7 +56,7 @@ class AnthropicProvider(LLMProvider):
         return True
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=HOSTED_API_TIMEOUT) as client:
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={
@@ -78,7 +86,7 @@ class OpenAIProvider(LLMProvider):
         return True
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=HOSTED_API_TIMEOUT) as client:
             resp = await client.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={
@@ -111,7 +119,7 @@ class GeminiProvider(LLMProvider):
         return True
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=HOSTED_API_TIMEOUT) as client:
             resp = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
                 params={"key": self.api_key},
