@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 def _doc_text(p: dict) -> str:
     return " ".join([
-        p.get("name", ""), p.get("category", ""), p.get("brand", ""),
+        p.get("name", ""), p.get("category", ""), p.get("subcategory", ""), p.get("brand", ""),
         p.get("description", ""), " ".join(p.get("tags", [])),
         " ".join(p.get("features", [])),
     ])
@@ -41,19 +41,22 @@ class RecommendationEngine:
             texts = [_doc_text(p) for p in products]
             self.vectorizer = TfidfVectorizer(stop_words="english", max_features=2000)
             self.matrix = self.vectorizer.fit_transform(texts)
-            self.similarity = cosine_similarity(self.matrix)
         else:
-            self.similarity = np.zeros((0, 0))
+            self.matrix = None
 
     def similar_products(self, product_id: str, top_k: int = 6) -> list[dict]:
         idx = self.id_to_idx.get(product_id)
-        if idx is None or self.similarity.shape[0] == 0:
+        if idx is None or self.matrix is None:
             return []
         source = self.products[idx]
-        scores = list(enumerate(self.similarity[idx]))
-        scores.sort(key=lambda x: x[1], reverse=True)
+        # One row of similarities on demand rather than a precomputed N x N
+        # matrix: with the full retail catalog (~4k products) the dense matrix
+        # is ~150MB per engine instance, and every request builds one.
+        sims = cosine_similarity(self.matrix[idx], self.matrix).flatten()
+        sims[idx] = -1.0
         results = []
-        for i, score in scores:
+        for i in np.argsort(-sims, kind="stable"):
+            score = sims[i]
             if i == idx:
                 continue
             p = dict(self.products[i])
@@ -89,5 +92,8 @@ class RecommendationEngine:
         return ranked
 
     def popular(self, top_k: int = 8) -> list[dict]:
-        ranked = sorted(self.products, key=lambda p: p.get("rating", 0), reverse=True)
+        # rating_count breaks ties so a 5.0 from hundreds of buyers outranks a
+        # 5.0 from three (retail ratings are implicit, from repeat purchases).
+        ranked = sorted(self.products, key=lambda p: (p.get("rating", 0), p.get("rating_count", 0)),
+                        reverse=True)
         return ranked[:top_k]

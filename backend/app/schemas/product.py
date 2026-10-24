@@ -1,10 +1,15 @@
 from pydantic import BaseModel
 from typing import Optional
 
+# Label for products mercora_ml_dataset.csv leaves without a category; kept
+# out of the category choices offered to the shopping agent's NLU.
+UNCATEGORIZED = "Uncategorized"
+
 
 class ProductCreate(BaseModel):
     name: str
     category: str
+    subcategory: str = UNCATEGORIZED
     description: str
     price: float
     discount: float = 0
@@ -19,6 +24,7 @@ class ProductCreate(BaseModel):
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
     discount: Optional[float] = None

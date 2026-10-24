@@ -273,16 +273,45 @@ MIN_PRICE_RE = re.compile(
     r"\b(?:more than|greater than|at least|starting from|starting at|above|over|min(?:imum)?|>=?)"
     r"\s*(?:rs\.?|inr|₹)?\s*([\d,]+)", re.I,
 )
+# Keyword -> category hints for the store's catalog (mercora_ml_dataset.csv's
+# taxonomy, as cleaned by scripts/fix_dataset.py). Each keyword was kept only
+# if it names at least 5 products and >=85% of the products whose name
+# contains it sit in that one category (e.g. "necklace" 100% Fashion &
+# Jewellery, "candle" 92% Home Decor); ambiguous words such as "lantern" (75%
+# -- paper lanterns are Christmas), "cake" (69%), "jar" (73%) or "birthday"
+# (72% -- mostly cards) are deliberately absent and are handled by the keyword
+# search instead. One exception: "christmas"/"xmas" (69%) still hint Party &
+# Seasonal, because the Christmas range is what a shopper means by it; the
+# rest are Christmas cards/wrap/stickers filed under their product type.
+# Matched on a word boundary (prefix, so plurals match) -- a plain substring
+# test maps "chair" to "hair".
 CATEGORY_KEYWORDS = {
-    "headphone": "Audio", "earphone": "Audio", "earbud": "Audio", "speaker": "Audio",
-    "laptop": "Laptops", "notebook": "Laptops",
-    "smartwatch": "Smartwatches", "watch": "Smartwatches",
-    "camera": "Cameras", "dslr": "Cameras",
-    "keyboard": "Accessories", "mouse": "Accessories", "charger": "Accessories", "cable": "Accessories",
-    "phone": "Electronics", "smartphone": "Electronics", "tablet": "Electronics",
-    "monitor": "Home Office", "desk": "Home Office", "chair": "Home Office",
-    "controller": "Gaming", "console": "Gaming", "gaming": "Gaming",
+    "lunch": "Bags & Accessories", "jumbo bag": "Bags & Accessories", "tote": "Bags & Accessories",
+    "purse": "Bags & Accessories", "wallet": "Bags & Accessories", "handbag": "Bags & Accessories",
+    "backpack": "Bags & Accessories", "luggage": "Bags & Accessories", "passport": "Bags & Accessories",
+    "soap": "Bath & Beauty", "washbag": "Bath & Beauty", "flannel": "Bath & Beauty",
+    "necklace": "Fashion & Jewellery", "bracelet": "Fashion & Jewellery", "earring": "Fashion & Jewellery",
+    "brooch": "Fashion & Jewellery", "pendant": "Fashion & Jewellery", "keyring": "Fashion & Jewellery",
+    "hair": "Fashion & Jewellery", "hot water bottle": "Fashion & Jewellery", "hand warmer": "Fashion & Jewellery",
+    "umbrella": "Fashion & Jewellery",
+    "parasol": "Garden & Outdoor", "planter": "Garden & Outdoor", "picnic": "Garden & Outdoor",
+    "candle": "Home Decor", "t-light": "Home Decor", "doormat": "Home Decor", "doorstop": "Home Decor",
+    "cushion": "Home Decor", "clock": "Home Decor", "frame": "Home Decor", "incense": "Home Decor",
+    "cabinet": "Home Decor", "shelf": "Home Decor", "hook": "Home Decor", "sign": "Home Decor",
+    "tea towel": "Kitchen & Dining", "mug": "Kitchen & Dining", "teapot": "Kitchen & Dining",
+    "saucer": "Kitchen & Dining", "baking": "Kitchen & Dining", "cake stand": "Kitchen & Dining",
+    "cake cases": "Kitchen & Dining", "storage": "Kitchen & Dining", "apron": "Kitchen & Dining",
+    "oven glove": "Kitchen & Dining", "coaster": "Kitchen & Dining", "placemat": "Kitchen & Dining",
+    "jug": "Kitchen & Dining",
+    "christmas": "Party & Seasonal", "xmas": "Party & Seasonal", "easter": "Party & Seasonal",
+    "party": "Party & Seasonal", "bunting": "Party & Seasonal", "napkin": "Party & Seasonal",
+    "doilies": "Party & Seasonal",
+    "notebook": "Stationery & Gift Wrap", "journal": "Stationery & Gift Wrap", "greeting": "Stationery & Gift Wrap",
+    "wrap": "Stationery & Gift Wrap", "ribbon": "Stationery & Gift Wrap", "sticker": "Stationery & Gift Wrap",
+    "magnet": "Stationery & Gift Wrap", "sewing": "Stationery & Gift Wrap",
+    "jigsaw": "Toys & Kids", "soft toy": "Toys & Kids", "beaker": "Toys & Kids",
 }
+_CATEGORY_KEYWORD_RES = [(re.compile(r"\b" + re.escape(kw)), cat) for kw, cat in CATEGORY_KEYWORDS.items()]
 
 
 STOPWORDS = {"i", "need", "want", "a", "for", "the", "under", "below", "with", "my",
@@ -293,6 +322,19 @@ GREETING_WORDS = {"hi", "hii", "hiii", "hello", "hey", "heyy", "yo", "sup", "hol
                    "thanks", "thank", "thankyou", "bye", "goodbye", "ok", "okay", "sure",
                    "cool", "nice", "great", "good", "morning", "evening", "afternoon",
                    "how", "are", "you", "whats", "what's", "up", "today", "please", "help"}
+
+
+def _search_terms(words: list[str]) -> list[str]:
+    """Drops filler words, greetings, very short tokens, repeats and bare numbers --
+    numbers are price constraints, never product search terms, and leaving
+    them in made search_catalog regex-match them against names/tags."""
+    terms = []
+    for w in words:
+        w = w.strip(".,!?").lower()
+        if (w not in STOPWORDS and w not in GREETING_WORDS and len(w) > 2 and w not in terms
+                and not w.replace(",", "").replace("₹", "").isdigit()):
+            terms.append(w)
+    return terms
 
 
 def parse_shopping_intent(message: str) -> dict:
@@ -307,21 +349,11 @@ def parse_shopping_intent(message: str) -> dict:
     min_price_match = MIN_PRICE_RE.search(text)
     min_budget = float(min_price_match.group(1).replace(",", "")) if min_price_match else None
 
-    category = None
-    for kw, cat in CATEGORY_KEYWORDS.items():
-        if kw in text:
-            category = cat
-            break
+    category = next((cat for kw_re, cat in _CATEGORY_KEYWORD_RES if kw_re.search(text)), None)
 
     # Bare numbers are price constraints (already captured as budget /
-    # min_budget above), never product search terms -- leaving them in made
-    # search_catalog regex-match them against product names/tags.
-    keywords = [
-        w.strip(".,!?") for w in text.split()
-        if w.strip(".,!?") not in STOPWORDS and w.strip(".,!?") not in GREETING_WORDS
-        and len(w.strip(".,!?")) > 2
-        and not w.strip(".,!?").replace(",", "").replace("₹", "").isdigit()
-    ]
+    # min_budget above), not search terms -- see _search_terms.
+    keywords = _search_terms(text.split())
 
     is_shopping_query = bool(category or budget or min_budget or keywords)
 
@@ -352,7 +384,7 @@ async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict
         '{"is_shopping_query": boolean, "corrected_message": string, "category": string|null, '
         '"budget": number|null, "min_budget": number|null, "keywords": string[]}. '
         "corrected_message is the customer's message with spelling and typing mistakes "
-        "fixed (e.g. \"labtop avobe 3000\" -> \"laptop above 3000\"), preserving their "
+        "fixed (e.g. \"christmass candel under 300\" -> \"christmas candle under 300\"), preserving their "
         "meaning and wording otherwise; return the message unchanged if there is nothing "
         "to correct. Never invent a different product from the one they asked for. "
         "is_shopping_query is true only if the customer is actually asking to find, browse, "
@@ -364,8 +396,8 @@ async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict
         "\"more than 4000\"), or null. "
         "keywords are the important product-search terms from the message (product type, "
         "brand, use-case), lowercase, excluding filler words, and spelled correctly using "
-        "the standard English product term (e.g. \"labtop\" -> \"laptop\", \"headphons\" -> "
-        "\"headphones\") -- never pass a misspelling through. keywords must be [] when "
+        "the standard English product term (e.g. \"candel\" -> \"candle\", \"lanturn\" -> "
+        "\"lantern\") -- never pass a misspelling through. keywords must be [] when "
         "is_shopping_query is false."
     )
     try:
@@ -384,7 +416,7 @@ async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict
         min_budget = parsed.get("min_budget")
         min_budget = float(min_budget) if isinstance(min_budget, (int, float)) else None
         # The LLM sometimes returns a keyword as a whole multi-word phrase
-        # (e.g. "wireless headphone") instead of individual words; downstream
+        # (e.g. "hanging heart") instead of individual words; downstream
         # search_catalog() does a per-keyword regex match against product
         # name/tags, which needs that literal phrase as a contiguous
         # substring and otherwise silently matches nothing. Split any
@@ -395,14 +427,17 @@ async def parse_shopping_intent_llm(message: str, categories: list[str]) -> dict
             if not isinstance(k, (str, int, float)):
                 continue
             keywords.extend(str(k).lower().split())
+        # The LLM also echoes price words/numbers ("under", "400") as keywords;
+        # apply the same filter the deterministic parser uses.
+        keywords = _search_terms(keywords)
         is_shopping_query = bool(parsed.get("is_shopping_query"))
-        # A local/small LLM can misclassify even an unambiguous query (e.g.
-        # "wireless headphone" -> "Electronics" instead of "Audio", observed
-        # consistently, not just flaky). CATEGORY_KEYWORDS is a small curated
+        # A local/small LLM can misclassify even an unambiguous query
+        # (observed consistently, not just flaky, on the old electronics
+        # catalog). CATEGORY_KEYWORDS is a small curated
         # set of exact, unambiguous keyword->category mappings, so when it
         # finds a match it's trusted over the LLM's guess; the LLM's category
         # is only used when the deterministic parser finds nothing (e.g.
-        # vaguer requests like "something to listen to music on").
+        # vaguer requests like "something cosy for the living room").
         if is_shopping_query:
             deterministic_category = parse_shopping_intent(message).get("category")
             if deterministic_category:
@@ -432,7 +467,7 @@ async def generate_conversational_reply(message: str) -> tuple[str, str]:
     Returns (reply, llm_status) so the caller can surface a silent fallback."""
     fallback_reply = (
         "Hi! I'm Mercora, your shopping assistant. Tell me what you're looking for -- "
-        "e.g. \"wireless keyboard under ₹4000 for gaming\" -- and I'll find the best matches "
+        "e.g. \"christmas decorations under ₹500\" -- and I'll find the best matches "
         "and explain why."
     )
     provider = get_llm_provider()
@@ -444,9 +479,10 @@ async def generate_conversational_reply(message: str) -> tuple[str, str]:
         return fallback_reply, LLM_STATUS_NOT_CONFIGURED
 
     system_prompt = (
-        "You are Mercora, a friendly, concise AI shopping assistant for an online store "
-        "selling audio, laptops, smartwatches, cameras, accessories, electronics, home office "
-        "and gaming products. The customer's message is small talk, not a product search. "
+        "You are Mercora, a friendly, concise AI shopping assistant for an online gift and "
+        "homeware store selling home decor, kitchen & dining, party & seasonal, bags & "
+        "accessories, stationery & gift wrap, toys & kids, fashion & jewellery, garden & "
+        "outdoor and bath & beauty products. The customer's message is small talk, not a product search. "
         "Reply warmly in 1-2 short sentences and invite them to describe what they're shopping "
         "for (category, budget, or use case). Do not list or mention specific products."
     )

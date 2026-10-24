@@ -9,16 +9,17 @@ from within the agent -- that is a separate, explicit checkout step.
 """
 import re
 
-from app.database.connection import get_db
+from app.database.connection import CATALOG_FETCH_LIMIT, get_db
 from app.ml.recommendation import RecommendationEngine
 from app.agents.llm_provider import parse_shopping_intent_llm, generate_conversational_reply
 from app.services import events
 from app.schemas.common import new_id, now_iso
+from app.schemas.product import UNCATEGORIZED
 
 
 async def _all_products() -> list[dict]:
     db = get_db()
-    return await db.products.find({}).to_list(length=1000)
+    return await db.products.find({}).to_list(length=CATALOG_FETCH_LIMIT)
 
 
 async def search_catalog(category: str | None, budget: float | None, keywords: list[str],
@@ -68,7 +69,10 @@ async def search_catalog(category: str | None, budget: float | None, keywords: l
 
     and_filters = price_clause + ([{"$or": match_clauses}] if match_clauses else [])
     query = {"$and": and_filters} if and_filters else {}
-    return await db.products.find(query).to_list(length=200)
+    # Uncapped (up to the catalog size): callers rank these by relevance, and a
+    # 200-document cap cut off keyword matches whenever the preferred category
+    # alone had more than 200 products, in arbitrary insertion order.
+    return await db.products.find(query).to_list(length=CATALOG_FETCH_LIMIT)
 
 
 async def get_recommendations(products: list[dict], query_text: str, top_k: int = 6) -> list[dict]:
@@ -250,7 +254,7 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
                     reply = "That's everything I've got matching your last search — want to try a different category or budget?"
                     return {"reply": reply, "products": [], "intent": prev_intent, "cross_sell": []}
 
-    categories = await db.products.distinct("category")
+    categories = [c for c in await db.products.distinct("category") if c and c != UNCATEGORIZED]
     intent = await parse_shopping_intent_llm(message, categories)
     await events.track("search", customer_id, {"query": message, "intent": intent})
 

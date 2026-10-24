@@ -3,15 +3,19 @@ export interface Product {
   merchant_id: string
   name: string
   category: string
+  subcategory?: string
   brand: string
   description: string
   price: number
   discount: number
   inventory: number
   rating: number
+  rating_count?: number
   features: string[]
   tags: string[]
   image: string
+  /** Attribution for an openly licensed stock photo (illustrates the product type, not the exact item). */
+  image_credit?: { author: string; license: string; source: string } | null
   created_at: string
   match_score?: number
   similarity_score?: number
@@ -19,6 +23,9 @@ export interface Product {
   confidence?: number
   best_pick?: boolean
   units_sold?: number
+  order_count?: number
+  /** Too few buyers for an implicit rating: `rating` is the category median. */
+  rating_imputed?: boolean
   revenue?: number
 }
 
@@ -26,6 +33,8 @@ export interface CartItem {
   product_id: string
   name: string
   image: string
+  category?: string
+  subcategory?: string
   price: number
   quantity: number
   line_total: number

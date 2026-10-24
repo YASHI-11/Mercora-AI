@@ -102,12 +102,22 @@ Both agents use an explicit tool registry — never arbitrary code execution:
 |---|---|---|
 | Product recommendation | `app/ml/recommendation.py` | TF-IDF + cosine similarity, blended with popularity |
 | Association rules | `app/ml/association.py` | Apriori (mlxtend) over order line-items → support/confidence/lift |
-| Customer segmentation | `app/ml/segmentation.py` | KMeans over RFM features, deterministic segment naming |
+| Customer segmentation | `app/ml/segmentation.py` | KMeans over log-scaled RFM features (recency vs. latest order), deterministic segment naming |
 | Growth opportunity scoring | `app/ml/opportunity.py` | Weighted score: `0.35·affinity + 0.25·conversion + 0.20·revenue + 0.20·confidence` |
 
-Run `backend/scripts/evaluate_ml.py` after seeding for real Precision@K / Recall@K / Hit Rate,
-association-rule distributions, and silhouette score — all computed against the seeded dataset,
-nothing fabricated.
+Real retail data comes from `mercora_ml_dataset.csv` (the Kaggle Online Retail UK invoices,
+cleaned and enriched with a category/subcategory taxonomy, implicit ratings and popularity), loaded
+by `backend/scripts/seed_kaggle_retail.py` — it is the store's whole catalog and order history. The CSV
+is ~108MB and gitignored — keep it at the repo root locally. `backend/scripts/fix_dataset.py` keeps it
+clean: every product gets a category/subcategory (10 categories / 57 subcategories) from rules on its
+product type, names are de-truncated, country codes expanded and non-merchandise lines (carriage, packing
+charges) dropped. Product photos are openly licensed Wikimedia Commons photos of each product's type
+(`backend/data/product_images.json`, credited on the product page).
+
+Run `backend/scripts/evaluate_ml.py` after seeding. It holds out each repeat customer's last order
+and reports Precision@K / Recall@K / Hit Rate on it for content similarity, co-purchase rules and a
+popularity baseline, re-checks mined rules' confidence on the held-out orders, and prints the
+segmentation silhouette score — all computed against what's in MongoDB, nothing fabricated.
 
 ## 7. Razorpay Integration
 
@@ -155,7 +165,8 @@ python -m venv venv
 ./venv/Scripts/activate     # Windows: venv\Scripts\activate | macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 cp ../.env.example ../.env  # then edit values as needed
-python scripts/seed_data.py
+python scripts/fix_dataset.py          # only needed for a raw mercora_ml_dataset.csv; idempotent
+python scripts/seed_kaggle_retail.py   # needs mercora_ml_dataset.csv at the repo root
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -215,7 +226,7 @@ shows every step → the Shopping Agent immediately surfaces the new bundle as a
   `backend/app/agents/llm_provider.py`). If the LLM call fails or returns malformed output for
   any reason, the shopping agent transparently falls back to the deterministic parser rather
   than erroring.
-- Product images are placeholder photos (`picsum.photos`), not real product photography.
+- Product photos illustrate each product's type (openly licensed Wikimedia Commons photos), not the exact item.
 - Growth opportunities are recomputed on demand (`refresh=true`) rather than on a background
   schedule.
 

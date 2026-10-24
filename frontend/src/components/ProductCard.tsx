@@ -1,60 +1,91 @@
 import { Link } from 'react-router-dom'
-import { Star, Plus, Check } from 'lucide-react'
+import { Star, Plus, Heart, Loader2, GitCompareArrows } from 'lucide-react'
 import type { Product } from '../types'
+import ProductImage from './ProductImage'
+import { useWishlist, useCompare } from '../hooks/useStoredIds'
+import { formatINR, finalPrice, availability } from '../hooks/useCatalog'
 
-export default function ProductCard({ product, onAdd, adding, added }: {
+export default function ProductCard({ product, onAdd, adding, compare = false }: {
   product: Product
-  onAdd?: (id: string) => void
+  onAdd?: (p: Product) => void
   adding?: boolean
-  added?: boolean
+  /** Show the "compare" toggle (listing pages). */
+  compare?: boolean
 }) {
-  const finalPrice = product.price * (1 - (product.discount || 0) / 100)
+  const wishlist = useWishlist()
+  const compareList = useCompare()
+  const price = finalPrice(product)
+  const stock = availability(product)
+  const saved = wishlist.has(product._id)
+  const comparing = compareList.has(product._id)
+  const href = `/shop/product/${product._id}`
 
   return (
-    <div className="group flex flex-col rounded-2xl border border-zinc-200 bg-white overflow-hidden transition-all hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-900/[0.04] hover:-translate-y-0.5">
-      <Link to={`/shop/product/${product._id}`} className="block aspect-square bg-zinc-100 overflow-hidden relative">
-        <img src={product.image} alt={product.name} loading="lazy"
-             className="h-full w-full object-cover group-hover:scale-[1.04] transition-transform duration-300" />
-        {product.discount > 0 && (
-          <span className="absolute top-2.5 left-2.5 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-gold-300">
-            {product.discount}% OFF
-          </span>
-        )}
-      </Link>
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gold-600">{product.category}</span>
-        <Link to={`/shop/product/${product._id}`} className="text-sm font-medium text-zinc-900 leading-snug line-clamp-2 hover:text-gold-700">
-          {product.name}
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-graphite transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-lavender/40">
+      <div className="relative aspect-square overflow-hidden bg-graphite-2">
+        <Link to={href} tabIndex={-1} aria-hidden>
+          <ProductImage src={product.image} name={product.name} category={product.category}
+                        subcategory={product.subcategory}
+                        className="h-full w-full transition-transform duration-500 group-hover:scale-[1.05]" />
         </Link>
-        <p className="text-xs text-zinc-500 line-clamp-2">{product.description}</p>
-        {product.reason && (
-          <p className="text-xs text-emerald-700 bg-emerald-50 rounded-md px-2 py-1 mt-0.5">{product.reason}</p>
-        )}
-        <div className="mt-auto flex items-center justify-between pt-2.5">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-base font-semibold text-zinc-900">₹{finalPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-            {product.discount > 0 && (
-              <span className="text-xs text-zinc-400 line-through">₹{product.price.toLocaleString('en-IN')}</span>
-            )}
-          </div>
-          <span className="flex items-center gap-0.5 text-xs font-medium text-zinc-600">
-            <Star size={12} className="fill-gold-400 text-gold-400" /> {product.rating}
+        {product.discount > 0 && (
+          <span className="absolute left-3 top-3 rounded-full bg-violet px-2.5 py-1 font-mono text-[10px] font-medium text-white">
+            −{product.discount}%
           </span>
-        </div>
-        {onAdd && (
-          <button
-            onClick={() => onAdd(product._id)}
-            disabled={adding}
-            className={`mt-2.5 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-semibold disabled:opacity-60 ${
-              added
-                ? 'bg-emerald-600 text-white hover:bg-emerald-600'
-                : 'bg-ink text-white hover:bg-zinc-800'
-            }`}
-          >
-            {added ? <><Check size={13} /> Added</> : <><Plus size={13} /> {adding ? 'Adding…' : 'Add to Cart'}</>}
-          </button>
         )}
+        <button onClick={() => wishlist.toggle(product._id)} aria-pressed={saved}
+                aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+                className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-obsidian/70 text-cloud backdrop-blur hover:bg-obsidian">
+          <Heart size={16} className={saved ? 'fill-violet text-violet' : ''} />
+        </button>
       </div>
-    </div>
+
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
+        <span className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-silver">
+          {product.subcategory || product.category}
+        </span>
+        <h3 className="text-[15px] font-medium leading-snug text-cloud">
+          <Link to={href} className="line-clamp-2 hover:text-lavender">{product.name}</Link>
+        </h3>
+        {product.reason && <p className="line-clamp-2 text-xs text-cyan/90">{product.reason}</p>}
+
+        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-base font-semibold text-cloud">{formatINR(price)}</span>
+            {product.discount > 0 && <span className="text-xs text-silver line-through">{formatINR(product.price)}</span>}
+          </div>
+          {product.rating > 0 && (
+            <span className="flex items-center gap-1 text-xs text-silver"
+                  title={product.rating_count ? `Rating derived from ${product.rating_count} buyers` : undefined}>
+              <Star size={12} className="fill-lavender text-lavender" aria-hidden />
+              <span className="text-cloud">{product.rating}</span>
+              {!!product.rating_count && <span>({product.rating_count.toLocaleString('en-IN')})</span>}
+            </span>
+          )}
+        </div>
+        {stock && <span className={`text-[11px] ${stock.tone}`}>{stock.label}</span>}
+
+        <div className="mt-2 flex items-center gap-2">
+          {onAdd && (
+            <button onClick={() => onAdd(product)} disabled={adding || product.inventory === 0}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-cloud py-2.5 text-xs font-semibold text-obsidian hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
+              {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+              {adding ? 'Adding…' : 'Add to cart'}
+            </button>
+          )}
+          {compare && (
+            <button onClick={() => compareList.toggle(product._id)} aria-pressed={comparing}
+                    disabled={!comparing && compareList.full}
+                    title={!comparing && compareList.full ? 'You can compare up to 3 products' : undefined}
+                    aria-label={comparing ? `Remove ${product.name} from comparison` : `Compare ${product.name}`}
+                    className={`flex h-[38px] items-center gap-1 rounded-full border px-3 text-xs font-medium disabled:opacity-40 ${
+                      comparing ? 'border-cyan/60 bg-cyan/10 text-cyan' : 'border-line text-silver hover:border-lavender/50 hover:text-cloud'
+                    }`}>
+              <GitCompareArrows size={13} /> {onAdd ? '' : 'Compare'}
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
   )
 }

@@ -56,9 +56,10 @@ RAZORPAY_KEY_SECRET=
 ## 3. Seed the deployed database (once, from your machine)
 
 ```
-cd backend && MONGODB_URI="<atlas uri>" DATABASE_NAME=mercora python scripts/seed_data.py
+cd backend && MONGODB_URI="<atlas uri>" DATABASE_NAME=mercora python scripts/seed_kaggle_retail.py
 ```
-(PowerShell: `$env:MONGODB_URI="<atlas uri>"; $env:DATABASE_NAME="mercora"; python scripts/seed_data.py`)
+(PowerShell: `$env:MONGODB_URI="<atlas uri>"; $env:DATABASE_NAME="mercora"; python scripts/seed_kaggle_retail.py`)
+Needs `mercora_ml_dataset.csv` at the repo root (gitignored, ~108MB). Safe to re-run: it upserts.
 
 ## Alternative: split deployment (Railway + Vercel)
 

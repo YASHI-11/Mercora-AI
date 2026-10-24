@@ -5,10 +5,11 @@ import { api, getCustomerId, getSessionId, resetSessionId } from "../lib/api"
 import { useCart } from "../hooks/useCart"
 import { useChatHistory } from "../hooks/useChatHistory"
 import type { ChatMessage, ShoppingAgentResponse } from "../types"
+import ProductImage from "./ProductImage"
 
 const GREETING: ChatMessage = {
   role: "assistant",
-  text: 'Hi! Tell me what you\'re shopping for — e.g. "wireless keyboard under ₹4000 for gaming".',
+  text: 'Hi! Tell me what you\'re shopping for — e.g. "christmas decorations under ₹500".',
 }
 
 /** The backend answers each turn with an llm_status; anything other than
@@ -20,7 +21,10 @@ const LLM_FALLBACK_NOTICES: Record<string, string> = {
   fallback_not_configured: "No AI provider configured — using keyword search, so results may be less precise.",
 }
 
-export default function ShoppingAssistant() {
+export default function ShoppingAssistant({ initialQuery }: {
+  /** Sent once on mount, e.g. from a product page's "ask for alternatives" link. */
+  initialQuery?: string
+} = {}) {
   const [messages, setMessages] = useChatHistory<ChatMessage>("mercora_shopping_chat", [GREETING])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -45,6 +49,16 @@ export default function ShoppingAssistant() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages, loading])
+
+  // Ref guard: StrictMode runs mount effects twice in development.
+  const sentInitial = useRef(false)
+  useEffect(() => {
+    if (initialQuery && !sentInitial.current) {
+      sentInitial.current = true
+      send(initialQuery)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery])
 
   async function send(overrideText?: string) {
     const text = (overrideText ?? input).trim()
@@ -108,60 +122,57 @@ export default function ShoppingAssistant() {
   }
 
   return (
-    <div className="flex flex-col h-full rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
-      <div className="flex items-center gap-2.5 border-b border-zinc-200 px-4 py-3.5 bg-gradient-to-b from-white to-zinc-50/60">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-gold-300">
-          <Sparkles size={13} />
+    <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-line bg-graphite">
+      <div className="flex items-center gap-2.5 border-b border-line px-5 py-4">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet/20 text-lavender">
+          <Sparkles size={15} />
         </span>
-        <span className="font-display italic text-base text-zinc-900">Shopping Assistant</span>
+        <span className="font-grotesk text-base font-semibold text-cloud">Mercora AI Assistant</span>
         <button
           onClick={newChat}
           title="Start a new chat"
-          className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900">
+          className="ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-silver hover:bg-white/5 hover:text-cloud">
           <MessageSquarePlus size={13} /> New chat
         </button>
       </div>
       {llmNotice && (
-        <div className="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[11px] leading-snug text-amber-800">
-          <AlertTriangle size={13} className="mt-px shrink-0 text-amber-600" />
+        <div role="status" className="flex items-start gap-2 border-b border-amber-400/20 bg-amber-400/10 px-5 py-2.5 text-xs leading-snug text-amber-200">
+          <AlertTriangle size={13} className="mt-px shrink-0" aria-hidden />
           <span className="flex-1">{llmNotice}</span>
-          <button
-            onClick={() => setLlmNotice(null)}
-            title="Dismiss"
-            className="shrink-0 text-amber-500 hover:text-amber-800">
+          <button onClick={() => setLlmNotice(null)} aria-label="Dismiss notice" className="shrink-0 hover:text-white">
             <X size={12} />
           </button>
         </div>
       )}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
+      <div ref={scrollRef} aria-live="polite" className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
             <div
-              className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-line ${
-                m.role === "user" ? "bg-ink text-white rounded-br-md" : "bg-zinc-100 text-zinc-800 rounded-bl-md"
+              className={`max-w-[92%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm ${
+                m.role === "user" ? "rounded-br-md bg-violet text-white" : "rounded-bl-md bg-graphite-2 text-cloud"
               }`}>
               {m.text}
               {m.products && m.products.length > 0 && (
-                <div className="mt-2.5 space-y-1.5">
+                <div className="mt-3 space-y-2">
                   {m.products.slice(0, 4).map((p, idx) => {
                     const isAdded = addedIds.has(p._id)
                     const isAdding = addingId === p._id
                     return (
                       <div
                         key={p._id}
-                        className={`flex items-center justify-between gap-2 rounded-xl bg-white border px-2.5 py-2 ${
-                          p.best_pick ? "border-gold-300 ring-1 ring-gold-100" : "border-zinc-200"
+                        className={`flex items-center justify-between gap-2 rounded-xl border bg-obsidian/60 px-3 py-2 ${
+                          p.best_pick ? "border-cyan/50" : "border-line"
                         }`}>
-                        <Link
-                          to={`/shop/product/${p._id}`}
-                          className="flex items-center gap-2 min-w-0 hover:opacity-80">
-                          <span className="text-[10px] font-semibold text-zinc-400 shrink-0 w-3">{idx + 1}</span>
-                          <img src={p.image} className="h-8 w-8 rounded-lg object-cover shrink-0" />
+                        <Link to={`/shop/product/${p._id}`} className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
+                          <span className="w-3 shrink-0 font-mono text-[10px] text-silver">{idx + 1}</span>
+                          <ProductImage src={p.image} name={p.name} category={p.category}
+                                        subcategory={p.subcategory} compact className="h-10 w-10 shrink-0 rounded-lg" />
                           <span className="min-w-0">
-                            <span className="block text-xs text-zinc-700 truncate hover:underline">{p.name}</span>
+                            <span className="block truncate text-xs text-cloud hover:underline">{p.name}</span>
+                            <span className="block text-[11px] text-silver">₹{p.price.toLocaleString("en-IN")}</span>
                             {p.best_pick && (
-                              <span className="flex items-center gap-0.5 text-[10px] font-medium text-gold-600">
-                                <Star size={9} className="fill-gold-500 text-gold-500" /> Best pick
+                              <span className="flex items-center gap-0.5 text-[10px] font-medium text-cyan">
+                                <Star size={9} className="fill-cyan text-cyan" /> Best pick
                               </span>
                             )}
                           </span>
@@ -169,18 +180,10 @@ export default function ShoppingAssistant() {
                         <button
                           onClick={() => addToCart(p._id)}
                           disabled={isAdding}
-                          className={`flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-60 ${
-                            isAdded ? "bg-emerald-600 hover:bg-emerald-600" : "bg-ink hover:bg-zinc-800"
+                          className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold disabled:opacity-60 ${
+                            isAdded ? "bg-emerald-500 text-white" : "bg-cloud text-obsidian hover:bg-white"
                           }`}>
-                          {isAdded ? (
-                            <>
-                              <Check size={11} /> Added
-                            </>
-                          ) : (
-                            <>
-                              <Plus size={11} /> {isAdding ? "Adding…" : "Add"}
-                            </>
-                          )}
+                          {isAdded ? (<><Check size={11} /> Added</>) : (<><Plus size={11} /> {isAdding ? "Adding…" : "Add"}</>)}
                         </button>
                       </div>
                     )
@@ -188,20 +191,20 @@ export default function ShoppingAssistant() {
                 </div>
               )}
               {m.role === "assistant" && m.products && m.products.length > 1 && i === lastProductMsgIndex && (
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   {m.products.slice(0, 4).map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => send(ORDINAL_LABELS[idx])}
                       disabled={loading}
-                      className="rounded-full border border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 hover:border-gold-300 hover:bg-gold-50 disabled:opacity-50">
+                      className="rounded-full border border-line px-3 py-1 text-[11px] font-medium text-silver hover:border-lavender/60 hover:text-cloud disabled:opacity-50">
                       Take the {ORDINAL_LABELS[idx]}
                     </button>
                   ))}
                   <button
                     onClick={() => send("show me more")}
                     disabled={loading}
-                    className="rounded-full border border-zinc-300 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 hover:border-gold-300 hover:bg-gold-50 disabled:opacity-50">
+                    className="rounded-full border border-line px-3 py-1 text-[11px] font-medium text-silver hover:border-lavender/60 hover:text-cloud disabled:opacity-50">
                     Show me more
                   </button>
                 </div>
@@ -210,32 +213,34 @@ export default function ShoppingAssistant() {
           </div>
         ))}
         {loading && (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" />
+          <div className="flex justify-start" aria-label="Assistant is thinking">
+            <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-graphite-2 px-4 py-3">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-lavender [animation-delay:-0.3s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-lavender [animation-delay:-0.15s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-lavender" />
             </div>
           </div>
         )}
       </div>
-      <div className="border-t border-zinc-200 p-3">
+      <form className="border-t border-line p-3" onSubmit={(e) => { e.preventDefault(); send() }}>
         <div className="flex items-center gap-2">
+          <label htmlFor="assistant-input" className="sr-only">Message the shopping assistant</label>
           <input
+            id="assistant-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Ask Mercora AI…"
-            className="flex-1 rounded-full border border-zinc-200 px-4 py-2.5 text-sm outline-none focus:border-gold-300 focus:ring-2 focus:ring-gold-100"
+            placeholder="Describe what you're shopping for…"
+            className="flex-1 rounded-full border border-line bg-obsidian px-4 py-3 text-sm text-cloud placeholder:text-silver/70 outline-none focus:border-violet/60"
           />
           <button
-            onClick={() => send()}
+            type="submit"
             disabled={loading}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white hover:bg-zinc-800 disabled:opacity-50">
+            aria-label="Send"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cloud text-obsidian hover:bg-white disabled:opacity-50">
             <Send size={15} />
           </button>
         </div>
-      </div>
+      </form>
     </div>
   )
 }

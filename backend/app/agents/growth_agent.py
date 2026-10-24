@@ -14,28 +14,91 @@ import re
 from pymongo import ReplaceOne
 
 from app.agents.llm_provider import get_llm_provider
-from app.database.connection import get_db
+from app.database.connection import CATALOG_FETCH_LIMIT, get_db
 from app.ml.association import mine_association_rules
 from app.ml.opportunity import build_bundle_opportunities, build_upsell_opportunities
-from app.ml.segmentation import segment_customers
+from app.ml.segmentation import features_from_rfm, segment_features
 from app.schemas.common import new_id, now_iso
 
 logger = logging.getLogger("mercora.growth_agent")
 
 
-async def fetch_paid_orders(merchant_id: str) -> list[dict]:
+# Association mining needs individual baskets, so it reads the most recent
+# MINING_ORDER_LIMIT paid orders, product ids only (~3s from Atlas for 10k;
+# a full-document fetch of every order measured 12-17s and blew serverless
+# time budgets). Every other metric below is an exact MongoDB aggregation
+# over ALL paid orders, so totals are never silently truncated by that cap.
+MINING_ORDER_LIMIT = 10000
+
+
+def _paid_orders_match(merchant_id: str) -> dict:
+    return {"merchant_id": merchant_id, "payment_status": "paid"}
+
+
+async def fetch_paid_orders(merchant_id: str, limit: int = MINING_ORDER_LIMIT) -> list[dict]:
+    """Most recent paid orders as baskets (customer, date, item product ids)."""
     db = get_db()
-    return await db.orders.find({"merchant_id": merchant_id, "payment_status": "paid"}).to_list(length=10000)
+    return await db.orders.find(
+        _paid_orders_match(merchant_id), {"customer_id": 1, "created_at": 1, "items.product_id": 1}
+    ).sort("created_at", -1).to_list(length=limit)
 
 
 async def fetch_products(merchant_id: str) -> list[dict]:
     db = get_db()
-    return await db.products.find({"merchant_id": merchant_id}).to_list(length=1000)
+    return await db.products.find({"merchant_id": merchant_id}).to_list(length=CATALOG_FETCH_LIMIT)
 
 
-def get_revenue_metrics(orders: list[dict], carts_started: int) -> dict:
-    total_revenue = sum(o.get("total", 0) for o in orders)
-    total_orders = len(orders)
+async def fetch_order_totals(merchant_id: str) -> dict:
+    db = get_db()
+    rows = await db.orders.aggregate([
+        {"$match": _paid_orders_match(merchant_id)},
+        {"$group": {
+            "_id": None,
+            "total_revenue": {"$sum": "$total"},
+            "total_orders": {"$sum": 1},
+            "ai_attributed_revenue": {"$sum": {"$cond": [{"$eq": ["$ai_attributed", True]}, "$total", 0]}},
+            "ai_attributed_orders": {"$sum": {"$cond": [{"$eq": ["$ai_attributed", True]}, 1, 0]}},
+        }},
+    ]).to_list(length=1)
+    totals = rows[0] if rows else {}
+    return {k: totals.get(k, 0) for k in
+            ("total_revenue", "total_orders", "ai_attributed_revenue", "ai_attributed_orders")}
+
+
+async def fetch_product_sales(merchant_id: str) -> dict[str, dict]:
+    """{product_id: {"units_sold", "revenue"}} over every paid order."""
+    db = get_db()
+    rows = await db.orders.aggregate([
+        {"$match": _paid_orders_match(merchant_id)},
+        {"$unwind": "$items"},
+        {"$group": {
+            "_id": "$items.product_id",
+            "units_sold": {"$sum": "$items.quantity"},
+            "revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.price"]}},
+        }},
+    ], allowDiskUse=True).to_list(length=None)
+    return {r["_id"]: {"units_sold": r["units_sold"], "revenue": r["revenue"]} for r in rows}
+
+
+async def fetch_customer_rfm(merchant_id: str) -> list[dict]:
+    """Per-customer spend / order count / last order date over every paid order."""
+    db = get_db()
+    rows = await db.orders.aggregate([
+        {"$match": _paid_orders_match(merchant_id)},
+        {"$group": {
+            "_id": "$customer_id",
+            "total_spent": {"$sum": "$total"},
+            "frequency": {"$sum": 1},
+            "last_order_at": {"$max": "$created_at"},
+        }},
+    ], allowDiskUse=True).to_list(length=None)
+    return [{"customer_id": r["_id"], "total_spent": r["total_spent"], "frequency": r["frequency"],
+             "last_order_at": r["last_order_at"]} for r in rows]
+
+
+def get_revenue_metrics(totals: dict, carts_started: int) -> dict:
+    total_revenue = totals["total_revenue"]
+    total_orders = totals["total_orders"]
     aov = total_revenue / total_orders if total_orders else 0
     all_carts_started = carts_started or total_orders
     conversion_rate = (total_orders / max(all_carts_started, total_orders, 1)) * 100
@@ -47,20 +110,20 @@ def get_revenue_metrics(orders: list[dict], carts_started: int) -> dict:
     }
 
 
-def get_product_metrics(products: list[dict], orders: list[dict]) -> dict:
-    sales_count: dict[str, int] = {}
-    revenue_by_product: dict[str, float] = {}
-    for o in orders:
-        for item in o.get("items", []):
-            pid = item["product_id"]
-            sales_count[pid] = sales_count.get(pid, 0) + item["quantity"]
-            revenue_by_product[pid] = revenue_by_product.get(pid, 0) + item["quantity"] * item["price"]
-
-    products = [dict(p) for p in products]
+def with_sales(products: list[dict], sales: dict[str, dict]) -> list[dict]:
+    """Copies of products annotated with their real units_sold / revenue."""
+    annotated = []
     for p in products:
-        p["units_sold"] = sales_count.get(p["_id"], 0)
-        p["revenue"] = round(revenue_by_product.get(p["_id"], 0), 2)
+        p = dict(p)
+        s = sales.get(p["_id"], {})
+        p["units_sold"] = s.get("units_sold", 0)
+        p["revenue"] = round(s.get("revenue", 0), 2)
+        annotated.append(p)
+    return annotated
 
+
+def get_product_metrics(products: list[dict], sales: dict[str, dict]) -> dict:
+    products = with_sales(products, sales)
     top_products = sorted(products, key=lambda p: p["units_sold"], reverse=True)[:10]
     low_products = sorted(products, key=lambda p: p["units_sold"])[:10]
     return {"top_products": top_products, "low_conversion_products": low_products, "total_products": len(products)}
@@ -70,10 +133,11 @@ def get_association_rules(orders: list[dict]) -> list[dict]:
     return mine_association_rules(orders)
 
 
-async def get_customer_segments(orders: list[dict]) -> dict:
+async def get_customer_segments(merchant_id: str) -> dict:
     db = get_db()
-    customers = await db.customers.find({}).to_list(length=5000)
-    return segment_customers(customers, orders)
+    customers = await db.customers.find({}, {"_id": 1}).to_list(length=None)
+    rfm = await fetch_customer_rfm(merchant_id)
+    return segment_features(features_from_rfm(customers, rfm))
 
 
 def _opportunity_doc_id(merchant_id: str, opp: dict) -> str:
@@ -208,7 +272,7 @@ async def classify_growth_intent(message: str, history_text: str = "") -> str:
 
 
 async def _gather_domain_facts(intent: str, merchant_id: str, revenue: dict,
-                                products: list[dict], orders: list[dict]) -> tuple[dict, list[dict]]:
+                                products: list[dict]) -> tuple[dict, list[dict]]:
     """Fetches only the real, aggregate data relevant to the classified domain
     -- structured as JSON-able facts, not pre-written prose, so the LLM has
     room to decide how to phrase and organize the answer itself rather than
@@ -217,6 +281,7 @@ async def _gather_domain_facts(intent: str, merchant_id: str, revenue: dict,
     opportunities: list[dict] = []
 
     if intent in ("opportunities", "revenue", "general"):
+        orders = await fetch_paid_orders(merchant_id)
         all_opps = await find_growth_opportunities(products, orders, merchant_id, persist=True)
         opportunities = all_opps[:3]
         facts["total_growth_opportunities_found"] = len(all_opps)
@@ -232,21 +297,21 @@ async def _gather_domain_facts(intent: str, merchant_id: str, revenue: dict,
         ]
 
     if intent == "top_performers":
-        metrics = get_product_metrics(products, orders)
+        metrics = get_product_metrics(products, await fetch_product_sales(merchant_id))
         facts["top_selling_products"] = [
             {"name": p["name"], "units_sold": p["units_sold"], "revenue_rupees": p["revenue"]}
             for p in metrics["top_products"] if p["units_sold"] > 0
         ][:5]
 
     if intent == "underperforming":
-        metrics = get_product_metrics(products, orders)
+        metrics = get_product_metrics(products, await fetch_product_sales(merchant_id))
         facts["lowest_selling_products"] = [
             {"name": p["name"], "units_sold": p["units_sold"], "revenue_rupees": p["revenue"]}
             for p in metrics["low_conversion_products"]
         ][:5]
 
     if intent == "segments":
-        seg = await get_customer_segments(orders)
+        seg = await get_customer_segments(merchant_id)
         facts["customer_segments"] = [
             {"name": s["name"], "customer_count": s["size"], "avg_spend_rupees": s["avg_total_spent"]}
             for s in seg.get("segments", [])
@@ -351,19 +416,15 @@ async def answer_growth_question(message: str, merchant_id: str, session_id: str
     history = await _get_recent_growth_history(session_id)
     history_text = _format_history(history)
 
-    # Orders/products are fetched ONCE and threaded through every downstream
-    # computation below -- the previous version had get_revenue_metrics,
-    # get_association_rules, get_product_metrics, and get_customer_segments
-    # each independently re-querying the full orders collection, which with
-    # the full production catalog (23k+ orders) measured at ~7s per fetch
-    # and was enough on its own to blow a serverless function's time budget.
-    orders = await fetch_paid_orders(merchant_id)
+    # Only the data the classified intent needs is fetched: revenue is a
+    # single aggregation, and order baskets (the expensive read) are loaded
+    # only for opportunity mining -- see MINING_ORDER_LIMIT.
     products = await fetch_products(merchant_id)
     carts_started = await db.cart_events.count_documents({"data.event": "checkout_started"})
 
     intent = await classify_growth_intent(message, history_text)
-    revenue = get_revenue_metrics(orders, carts_started)
-    facts, opportunities = await _gather_domain_facts(intent, merchant_id, revenue, products, orders)
+    revenue = get_revenue_metrics(await fetch_order_totals(merchant_id), carts_started)
+    facts, opportunities = await _gather_domain_facts(intent, merchant_id, revenue, products)
     facts["_intent"] = intent
 
     reply = await _compose_reply(message, history_text, facts)

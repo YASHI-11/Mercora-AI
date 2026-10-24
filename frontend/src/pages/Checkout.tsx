@@ -81,7 +81,7 @@ export default function Checkout() {
           }
         },
         modal: { ondismiss: () => setStatus('idle') },
-        theme: { color: '#b3812f' },
+        theme: { color: '#8b5cf6' },
       })
       rzp.on('payment.failed', () => { setStatus('failed'); setErrorMsg('Payment failed or was declined.') })
       rzp.open()
@@ -91,19 +91,23 @@ export default function Checkout() {
     }
   }
 
+  // Checkout is deliberately calm: no 3D, no decorative motion (spec §7.3).
+  const stepIndex = status === 'success' ? 2 : status === 'processing' ? 1 : 0
+
   if (status === 'success') {
     return (
-      <div className="mx-auto max-w-md px-4 py-24 text-center">
-        <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-4" />
-        <h1 className="font-display italic text-2xl text-zinc-900">Payment Successful</h1>
-        <p className="text-sm text-zinc-500 mt-1">Your order has been confirmed.</p>
-        <div className="flex justify-center gap-3 mt-6">
-          <button onClick={() => navigate('/orders')} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">View Orders</button>
-          <button onClick={() => navigate('/shop')} className="rounded-full border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:border-zinc-300">Continue Shopping</button>
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <Steps current={stepIndex} />
+        <CheckCircle2 size={44} className="mx-auto mb-4 text-emerald-400" aria-hidden />
+        <h1 className="text-3xl font-semibold text-cloud">Payment confirmed</h1>
+        <p className="mt-2 text-sm text-silver">Your payment was verified on our server and the order is confirmed.</p>
+        <div className="mt-8 flex justify-center gap-3">
+          <button onClick={() => navigate('/orders')} className="rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">View orders</button>
+          <button onClick={() => navigate('/shop')} className="rounded-full border border-line px-6 py-3 text-sm font-semibold text-cloud hover:bg-white/5">Continue shopping</button>
         </div>
         {orderId && (
-          <Link to={`/orders/${orderId}/invoice`} className="mt-4 flex items-center justify-center gap-1.5 text-sm font-medium text-gold-600 hover:text-gold-700">
-            <FileText size={14} /> View Invoice
+          <Link to={`/orders/${orderId}/invoice`} className="mt-5 inline-flex items-center gap-1.5 text-sm text-lavender hover:text-cloud">
+            <FileText size={14} /> View invoice
           </Link>
         )}
       </div>
@@ -112,49 +116,73 @@ export default function Checkout() {
 
   if (status === 'failed') {
     return (
-      <div className="mx-auto max-w-md px-4 py-24 text-center">
-        <XCircle size={40} className="mx-auto text-red-500 mb-4" />
-        <h1 className="font-display italic text-2xl text-zinc-900">Payment Failed</h1>
-        <p className="text-sm text-zinc-500 mt-1">{errorMsg || 'Something went wrong during payment.'}</p>
-        <button onClick={() => setStatus('idle')} className="mt-6 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">Try Again</button>
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <XCircle size={44} className="mx-auto mb-4 text-red-400" aria-hidden />
+        <h1 className="text-3xl font-semibold text-cloud">Payment not completed</h1>
+        <p className="mt-2 text-sm text-silver">{errorMsg || 'Something went wrong during payment.'} You have not been charged for an unverified payment.</p>
+        <button onClick={() => setStatus('idle')} className="mt-8 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">Try again</button>
       </div>
     )
   }
 
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="mx-auto max-w-md px-4 py-24 text-center">
-        <p className="text-sm text-zinc-500">Your cart is empty.</p>
-        <button onClick={() => navigate('/shop')} className="mt-4 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">Go to Shop</button>
+      <div className="mx-auto max-w-lg px-4 py-24 text-center">
+        <p className="text-silver">Your cart is empty.</p>
+        <button onClick={() => navigate('/shop')} className="mt-5 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">Go to shop</button>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="font-display italic text-2xl text-zinc-900 mb-1">Checkout</h1>
-      <p className="text-sm text-zinc-500 mb-6">Razorpay Test Mode — no real payment is made.</p>
+    <div className="mx-auto max-w-2xl px-4 pb-24 pt-10 sm:px-6">
+      <Steps current={stepIndex} />
+      <h1 className="text-3xl font-semibold text-cloud">Checkout</h1>
+      <p className="mt-2 text-sm text-silver">Razorpay Test Mode — no real money is charged. Delivery details come from your verified account.</p>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="space-y-2 mb-4">
+      <section aria-labelledby="summary-title" className="mt-8 rounded-3xl border border-line bg-graphite p-6">
+        <h2 id="summary-title" className="text-sm font-semibold uppercase tracking-wider text-silver">What you're buying</h2>
+        <ul className="mt-4 divide-y divide-line">
           {cart.items.map((i) => (
-            <div key={i.product_id} className="flex justify-between text-sm text-zinc-600">
-              <span>{i.name} × {i.quantity}</span><span>₹{i.line_total.toLocaleString('en-IN')}</span>
-            </div>
+            <li key={i.product_id} className="flex justify-between gap-4 py-3 text-sm">
+              <span className="text-cloud">{i.name} <span className="text-silver">× {i.quantity}</span></span>
+              <span className="shrink-0 text-cloud">₹{i.line_total.toLocaleString('en-IN')}</span>
+            </li>
           ))}
-        </div>
-        <div className="flex justify-between text-sm font-semibold text-zinc-900 border-t border-zinc-200 pt-3">
-          <span>Total</span><span>₹{cart.total.toLocaleString('en-IN')}</span>
-        </div>
+        </ul>
+        <dl className="mt-2 space-y-2 border-t border-line pt-4 text-sm">
+          <div className="flex justify-between text-silver"><dt>Delivery</dt><dd className="text-cloud">No charge</dd></div>
+          <div className="flex justify-between text-base font-semibold text-cloud"><dt>Total payable</dt><dd>₹{cart.total.toLocaleString('en-IN')}</dd></div>
+        </dl>
 
         <button onClick={startPayment} disabled={status === 'processing'}
-                className="mt-5 w-full flex items-center justify-center gap-2 rounded-full bg-ink py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60">
-          {status === 'processing' ? <><Loader2 size={15} className="animate-spin" /> Processing…</> : 'Pay with Razorpay'}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-cloud py-3.5 text-sm font-semibold text-obsidian hover:bg-white disabled:opacity-60">
+          {status === 'processing' ? <><Loader2 size={15} className="animate-spin" /> Processing…</> : `Pay ₹${cart.total.toLocaleString('en-IN')} with Razorpay`}
         </button>
-        <p className="flex items-center justify-center gap-1.5 mt-3 text-xs text-zinc-400">
-          <ShieldCheck size={12} className="text-gold-500" /> Secured by Razorpay · Test Mode
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-silver">
+          <ShieldCheck size={13} className="text-emerald-400" aria-hidden /> Payment is verified on our server before your order is confirmed.
         </p>
-      </div>
+      </section>
+      <p className="mt-6 text-sm text-silver">After payment you'll get an order confirmation and an invoice under <Link to="/orders" className="text-lavender hover:text-cloud">Orders</Link>.</p>
     </div>
+  )
+}
+
+const STEPS = ['Review order', 'Pay securely', 'Confirmation']
+
+function Steps({ current }: { current: number }) {
+  return (
+    <ol className="mb-10 flex flex-wrap items-center gap-2 text-xs" aria-label="Checkout progress">
+      {STEPS.map((s, i) => (
+        <li key={s} aria-current={i === current ? 'step' : undefined}
+            className={`flex items-center gap-2 ${i <= current ? 'text-cloud' : 'text-silver'}`}>
+          <span className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] ${
+            i < current ? 'bg-emerald-500 text-white' : i === current ? 'bg-cloud text-obsidian' : 'border border-line'
+          }`}>{i + 1}</span>
+          {s}
+          {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-line" aria-hidden />}
+        </li>
+      ))}
+    </ol>
   )
 }

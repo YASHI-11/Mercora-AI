@@ -20,18 +20,18 @@ export default function InvoicePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-6 print:hidden">
-        <Link to="/orders" className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900">
+        <Link to="/orders" className="flex items-center gap-1.5 text-sm text-silver hover:text-cloud">
           <ArrowLeft size={14} /> Back to Orders
         </Link>
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          className="flex items-center gap-1.5 rounded-full bg-cloud px-4 py-2 text-sm font-medium text-obsidian hover:bg-white"
         >
           <Printer size={14} /> Print / Save as PDF
         </button>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm print:border-0 print:shadow-none print:rounded-none">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-zinc-900 shadow-sm print:border-0 print:shadow-none print:rounded-none">
         <div className="flex items-start justify-between border-b border-zinc-200 pb-6 mb-6">
           <div>
             <div className="flex items-center gap-2 text-zinc-900 mb-1">

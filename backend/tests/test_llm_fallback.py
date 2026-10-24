@@ -2,15 +2,22 @@ from app.agents.llm_provider import parse_shopping_intent, get_llm_provider, Fal
 
 
 def test_parse_intent_category_and_budget():
-    intent = parse_shopping_intent("I need wireless headphones under 4000 for gaming")
-    assert intent["category"] == "Audio"
+    intent = parse_shopping_intent("I need christmas decorations under 4000 for the tree")
+    assert intent["category"] == "Party & Seasonal"
     assert intent["budget"] == 4000
 
 
 def test_parse_intent_no_budget():
-    intent = parse_shopping_intent("Show me a good laptop for programming")
-    assert intent["category"] == "Laptops"
+    intent = parse_shopping_intent("Show me a good mug for coffee")
+    assert intent["category"] == "Kitchen & Dining"
     assert intent["budget"] is None
+
+
+def test_category_keywords_match_on_word_boundary():
+    # "chair" contains "hair" (Fashion & Jewellery) as a substring
+    assert parse_shopping_intent("a wooden chair")["category"] is None
+    assert parse_shopping_intent("hair clips")["category"] == "Fashion & Jewellery"
+    assert parse_shopping_intent("lunch bags for school")["category"] == "Bags & Accessories"
 
 
 def test_parse_intent_min_budget():

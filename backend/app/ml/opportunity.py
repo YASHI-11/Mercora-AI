@@ -2,6 +2,7 @@
 revenue/conversion metrics into ranked, explainable opportunities for the
 merchant. Every number here is derived from real aggregate order/product
 data -- nothing is invented by the LLM layer."""
+from app.schemas.product import UNCATEGORIZED
 
 
 def score_opportunity(purchase_affinity: float, conversion_potential: float,
@@ -69,7 +70,9 @@ def build_upsell_opportunities(products: list[dict]) -> list[dict]:
 
     opportunities = []
     for category, items in by_category.items():
-        if len(items) < 2:
+        # "Uncategorized" is a bucket of unrelated items, not a category a
+        # shopper browses -- a cheapest-vs-premium pair from it means nothing.
+        if len(items) < 2 or category == UNCATEGORIZED:
             continue
         items_sorted = sorted(items, key=lambda p: p["price"])
         cheapest = items_sorted[0]

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.database.connection import get_db
+from app.database.connection import CATALOG_FETCH_LIMIT, get_db
 from app.ml.recommendation import RecommendationEngine
 from app.agents.shopping_agent import get_cross_sell_products
 from app.services import events
@@ -19,7 +19,7 @@ async def similar_products(product_id: str, top_k: int = 6):
     product = await db.products.find_one({"_id": product_id})
     if not product:
         raise HTTPException(404, "Product not found")
-    all_products = await db.products.find({}).to_list(length=1000)
+    all_products = await db.products.find({}).to_list(length=CATALOG_FETCH_LIMIT)
     engine = RecommendationEngine(all_products)
     similar = engine.similar_products(product_id, top_k=top_k)
     cross_sell = await get_cross_sell_products(product_id, top_k=3)
@@ -34,7 +34,7 @@ async def personalized(payload: PersonalizedRequest):
         {"customer_id": payload.customer_id, "event_type": "add_to_cart"}
     ).sort("created_at", -1).limit(5).to_list(length=5)
 
-    all_products = await db.products.find({}).to_list(length=1000)
+    all_products = await db.products.find({}).to_list(length=CATALOG_FETCH_LIMIT)
     engine = RecommendationEngine(all_products)
 
     if events_history:
@@ -45,7 +45,11 @@ async def personalized(payload: PersonalizedRequest):
                 collected[p["_id"]] = p
         results = sorted(collected.values(), key=lambda p: p.get("similarity_score", 0), reverse=True)
         results = results[:payload.top_k]
+        basis = "recent_cart_activity"
     else:
         results = engine.popular(top_k=payload.top_k)
+        basis = "popular"
 
-    return {"products": results}
+    # basis lets the UI say honestly whether these are personal or a
+    # popularity fallback for shoppers with no activity yet.
+    return {"products": results, "basis": basis}

@@ -20,6 +20,7 @@ async def _hydrate_cart(cart: dict) -> dict:
         subtotal += line_total
         items_out.append({
             "product_id": product["_id"], "name": product["name"], "image": product.get("image", ""),
+            "category": product.get("category", ""), "subcategory": product.get("subcategory", ""),
             "price": round(price, 2), "quantity": item["quantity"], "line_total": round(line_total, 2),
         })
     return {

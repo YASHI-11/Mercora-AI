@@ -8,6 +8,11 @@ settings = get_settings()
 
 _client: AsyncIOMotorClient | None = None
 
+# Upper bound for "load the whole catalog" queries (recommendation engine,
+# growth agent). The retail dataset alone is ~3.8k products; at the old 1000
+# cap most of it was invisible to recommendations and bundle mining.
+CATALOG_FETCH_LIMIT = 10000
+
 
 def get_client() -> AsyncIOMotorClient:
     global _client

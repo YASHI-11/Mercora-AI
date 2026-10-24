@@ -6,4 +6,8 @@ frontend/node_modules/
 frontend/dist/
 .env
 *.pyc
+# 108MB -- over GitHub's 100MB per-file limit; keep it local
+mercora_ml_dataset.csv
 .DS_Store
+mercora_ml_dataset.original.csv
+backups/
