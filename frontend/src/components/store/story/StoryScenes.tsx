@@ -26,7 +26,7 @@ export function RecollectScene({ field, onIntroDone }: { field: RefObject<FieldH
     <section className="scene-recollect relative -mt-16 motion-safe:h-[260svh]">
       <div className="motion-safe:sticky top-0 h-[100svh]">
         <MercoraIntro field={field} onDone={onIntroDone} />
-        <p className="recollect-caption pointer-events-none absolute inset-x-0 bottom-[12svh] px-4 text-center font-mono text-[11px] tracking-[0.32em] text-[#B9DFFF]">
+        <p className="recollect-caption pointer-events-none absolute motion-reduce:hidden inset-x-0 bottom-[12svh] px-4 text-center font-mono text-[11px] tracking-[0.32em] text-[#B9DFFF]">
           EVERY ORDER BEGINS AS A SINGLE PACKAGE
         </p>
       </div>

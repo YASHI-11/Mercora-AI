@@ -64,6 +64,12 @@ export default function FragmentField({ ref }: { ref?: Ref<FieldHandle> }) {
   useImperativeHandle(ref, () => {
     const s = sim.current
     const create = (origin: { x: number; y: number }, edges: Seg[]) => {
+      // restInstant can arrive from the intro's layout effect, before this
+      // component's effect has measured the canvas (fixed, full viewport).
+      if (!s.w || !s.h) {
+        s.w = window.innerWidth
+        s.h = window.innerHeight
+      }
       s.frags = createFragments(origin, edges, s.w, s.h)
       s.createdW = s.w
       s.createdH = s.h
