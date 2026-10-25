@@ -35,7 +35,7 @@ export default function InvoicePage() {
         <div className="flex items-start justify-between border-b border-zinc-200 pb-6 mb-6">
           <div>
             <div className="flex items-center gap-2 text-zinc-900 mb-1">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-gold-300 text-[12px] font-display italic">M</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-[#d9b467] text-[12px] font-display italic">M</span>
               <span className="font-display italic text-lg">Mercora AI</span>
             </div>
             <p className="text-xs text-zinc-400">Tax Invoice</p>

@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
-import Navbar from './components/Navbar'
 import RequireAuth from './components/RequireAuth'
 import StoreNav from './components/store/StoreNav'
 import Footer from './components/store/Footer'
@@ -48,11 +47,11 @@ function ScrollManager() {
 export default function App() {
   const { pathname } = useLocation()
 
-  // The merchant dashboard keeps its own light theme and navbar.
+  // The merchant console shares the storefront's palette and type; its shell
+  // (sidebar, page header) is MerchantLayout.
   if (pathname.startsWith('/merchant')) {
     return (
-      <div className="min-h-screen bg-zinc-50">
-        <Navbar />
+      <div className="storefront min-h-screen">
         <Suspense fallback={<LoadingState />}>
         <Routes>
           <Route path="/merchant" element={<MerchantLayout />}>
@@ -74,7 +73,8 @@ export default function App() {
   const isAuthPage = pathname === '/login'
 
   return (
-    <div className="storefront flex min-h-screen flex-col">
+    // The homepage was designed against the first palette and keeps it.
+    <div className={`storefront flex min-h-screen flex-col ${pathname === '/' ? 'theme-legacy' : ''}`}>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[90] focus:rounded-full focus:bg-cloud focus:px-4 focus:py-2 focus:text-obsidian">
         Skip to content
       </a>

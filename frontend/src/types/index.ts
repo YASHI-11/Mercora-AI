@@ -145,6 +145,8 @@ export interface MerchantOverview {
   ai_attributed_revenue: number
   ai_attributed_orders: number
   growth_opportunities_count: number
+  /** Tracked checkout sessions; 0 means conversion_rate is a fallback, not a measurement. */
+  checkout_sessions?: number
 }
 
 export type ExplanationMethod = 'co_purchase' | 'content' | 'intent' | 'popularity'

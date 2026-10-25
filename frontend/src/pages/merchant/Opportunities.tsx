@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { TrendingUp, Package, CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
+import { TrendingUp, Package, CheckCircle2, XCircle, RefreshCw, ChevronDown } from 'lucide-react'
 import { api } from '../../lib/api'
 import { LoadingState, EmptyState } from '../../components/StateViews'
+import { ghostButton, primaryButton } from '../../components/merchant/theme'
+import { formatINR } from '../../hooks/useCatalog'
 import type { Opportunity } from '../../types'
 
 export default function Opportunities() {
@@ -32,65 +34,73 @@ export default function Opportunities() {
   }
 
   if (isLoading) return <LoadingState label="Loading opportunities…" />
+  const list = data?.opportunities ?? []
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-zinc-500">AI-generated opportunities, grounded in real order data. Nothing changes without your approval.</p>
-        <button onClick={refresh} disabled={refreshing}
-                className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">
-          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Refresh analysis
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-silver">
+          <span className="font-grotesk text-lg font-semibold text-cloud tabular-nums">{list.length}</span> pending, ranked by score
+        </p>
+        <button onClick={refresh} disabled={refreshing} className={ghostButton}>
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Mining orders…' : 'Refresh analysis'}
         </button>
       </div>
 
-      {(!data || data.opportunities.length === 0) && (
+      {list.length === 0 && (
         <EmptyState title="No opportunities yet" subtitle="Run more orders through the demo or click Refresh analysis." />
       )}
 
       <div className="space-y-3">
-        {data?.opportunities.map((opp) => (
-          <div key={opp._id} className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-            <button onClick={() => setExpanded(expanded === opp._id ? null : opp._id)}
-                    className="w-full flex items-center gap-4 p-4 text-left hover:bg-zinc-50">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100">
-                {opp.type === 'bundle' ? <Package size={16} /> : <TrendingUp size={16} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-zinc-900">
-                  <span className="uppercase text-[10px] font-semibold text-zinc-400 mr-2">{opp.type}</span>
-                  {opp.product_names.join(' + ')}
-                </p>
-                <p className="text-xs text-zinc-500 mt-0.5 truncate">{opp.reason}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-semibold text-zinc-900">₹{opp.expected_uplift.toLocaleString('en-IN')}/mo</p>
-                <p className="text-xs text-zinc-400">{Math.round(opp.score * 100)}% confidence</p>
-              </div>
-            </button>
+        {list.map((opp) => {
+          const open = expanded === opp._id
+          const Icon = opp.type === 'bundle' ? Package : TrendingUp
+          return (
+            <article key={opp._id} className={`overflow-hidden rounded-2xl border bg-graphite transition-colors ${open ? 'border-lavender/30' : 'border-line hover:border-lavender/20'}`}>
+              <button onClick={() => setExpanded(open ? null : opp._id)} aria-expanded={open}
+                      className="flex w-full items-center gap-4 p-4 text-left sm:p-5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-lavender/10 text-lavender">
+                  <Icon size={17} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-lavender">{opp.type}</p>
+                  <p className="mt-0.5 truncate text-sm font-medium text-cloud">{opp.product_names.join('  +  ')}</p>
+                </div>
+                <div className="hidden w-32 shrink-0 sm:block">
+                  <div className="flex justify-between text-[11px] text-silver"><span>Score</span><span className="tabular-nums text-cloud">{Math.round(opp.score * 100)}</span></div>
+                  <div className="mt-1 h-1 rounded-full bg-graphite-2">
+                    <div className="h-full rounded-full bg-lavender" style={{ width: `${opp.score * 100}%` }} />
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-grotesk text-base font-semibold text-cloud tabular-nums">{formatINR(opp.expected_uplift)}</p>
+                  <p className="text-[11px] text-silver">expected / month</p>
+                </div>
+                <ChevronDown size={16} aria-hidden className={`shrink-0 text-silver transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
 
-            {expanded === opp._id && (
-              <div className="border-t border-zinc-100 bg-zinc-50 px-4 py-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-xs">
-                  {opp.support != null && <Metric label="Support" value={`${(opp.support * 100).toFixed(1)}%`} />}
-                  {opp.confidence != null && <Metric label="Confidence" value={`${(opp.confidence * 100).toFixed(1)}%`} />}
-                  {opp.lift != null && <Metric label="Lift" value={`${opp.lift.toFixed(2)}x`} />}
-                  {opp.recommended_discount != null && <Metric label="Suggested Discount" value={`${opp.recommended_discount}%`} />}
+              {open && (
+                <div className="border-t border-line px-4 pb-5 pt-4 sm:px-5">
+                  <p className="text-sm leading-relaxed text-silver">{opp.reason}</p>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {opp.support != null && <Metric label="Support" value={`${(opp.support * 100).toFixed(1)}%`} />}
+                    {opp.confidence != null && <Metric label="Confidence" value={`${(opp.confidence * 100).toFixed(1)}%`} />}
+                    {opp.lift != null && <Metric label="Lift" value={`${opp.lift.toFixed(2)}×`} />}
+                    {opp.recommended_discount != null && <Metric label="Suggested discount" value={`${opp.recommended_discount}%`} />}
+                  </dl>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button onClick={() => approve(opp._id, true)} className={primaryButton}>
+                      <CheckCircle2 size={14} /> Approve
+                    </button>
+                    <button onClick={() => approve(opp._id, false)} className={ghostButton}>
+                      <XCircle size={14} /> Reject
+                    </button>
+                  </div>
                 </div>
-                <p className="text-sm text-zinc-600 mb-4">{opp.reason}</p>
-                <div className="flex gap-2">
-                  <button onClick={() => approve(opp._id, true)}
-                          className="flex items-center gap-1.5 rounded-md bg-zinc-900 px-3.5 py-2 text-xs font-medium text-white hover:bg-zinc-700">
-                    <CheckCircle2 size={13} /> Approve
-                  </button>
-                  <button onClick={() => approve(opp._id, false)}
-                          className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3.5 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50">
-                    <XCircle size={13} /> Reject
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </article>
+          )
+        })}
       </div>
     </div>
   )
@@ -98,9 +108,9 @@ export default function Opportunities() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-white border border-zinc-200 px-3 py-2">
-      <p className="text-zinc-400">{label}</p>
-      <p className="text-sm font-semibold text-zinc-900 mt-0.5">{value}</p>
+    <div className="rounded-xl border border-line bg-obsidian/60 px-3 py-2.5">
+      <dt className="text-[11px] text-silver">{label}</dt>
+      <dd className="mt-0.5 font-mono text-sm text-cloud">{value}</dd>
     </div>
   )
 }

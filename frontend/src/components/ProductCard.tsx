@@ -30,7 +30,7 @@ export default function ProductCard({ product, onAdd, adding, compare = false }:
                         className="h-full w-full transition-transform duration-500 group-hover:scale-[1.05]" />
         </Link>
         {product.discount > 0 && (
-          <span className="absolute left-3 top-3 rounded-full bg-violet px-2.5 py-1 font-mono text-[10px] font-medium text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-violet px-2.5 py-1 font-mono text-[10px] font-medium text-on-accent">
             −{product.discount}%
           </span>
         )}

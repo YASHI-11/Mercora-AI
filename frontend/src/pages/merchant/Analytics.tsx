@@ -1,15 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../../lib/api'
 import { LoadingState } from '../../components/StateViews'
+import { Panel, TipCard } from '../../components/merchant/ui'
+import { CHART, axisINR, type TipProps } from '../../components/merchant/theme'
+import { formatINR, formatINRCompact } from '../../hooks/useCatalog'
 import type { Product } from '../../types'
 
-const COLORS = ['#18181b', '#52525b', '#a1a1aa', '#d4d4d8', '#e4e4e7', '#f4f4f5', '#71717a', '#3f3f46']
+type CategoryRow = { category: string; revenue: number; units_sold: number; product_count: number }
+type Segment = { name: string; size: number; avg_total_spent: number; avg_frequency: number; avg_recency_days: number }
 
 export default function Analytics() {
   const { data: categories, isLoading: loadingCat } = useQuery({
     queryKey: ['category-performance'],
-    queryFn: async () => (await api.get<{ categories: any[] }>('/merchant/analytics/categories')).data,
+    queryFn: async () => (await api.get<{ categories: CategoryRow[] }>('/merchant/analytics/categories')).data,
   })
   const { data: products, isLoading: loadingProd } = useQuery({
     queryKey: ['product-analytics'],
@@ -17,71 +21,96 @@ export default function Analytics() {
   })
   const { data: segments } = useQuery({
     queryKey: ['segments'],
-    queryFn: async () => (await api.get('/merchant/analytics/segments')).data,
+    queryFn: async () => (await api.get<{ segments: Segment[]; silhouette_score: number | null }>('/merchant/analytics/segments')).data,
   })
 
   if (loadingCat || loadingProd) return <LoadingState label="Loading analytics…" />
 
+  const cats = [...(categories?.categories ?? [])].sort((a, b) => b.revenue - a.revenue)
+  const segs = [...(segments?.segments ?? [])].sort((a, b) => b.size - a.size)
+
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-zinc-900 mb-4">Revenue by Category</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={categories?.categories || []}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="category" tick={{ fontSize: 10, fill: '#a1a1aa' }} angle={-20} textAnchor="end" height={60} />
-              <YAxis tick={{ fontSize: 11, fill: '#a1a1aa' }} width={50} />
-              <Tooltip formatter={(v) => `₹${Number(v).toLocaleString('en-IN')}`} />
-              <Bar dataKey="revenue" fill="#18181b" radius={[3, 3, 0, 0]} />
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+        <Panel id="cat-revenue" title="Revenue by category" className="xl:col-span-3"
+               subtitle="All paid orders, ranked. Hover a bar for units sold and catalogue size.">
+          <ResponsiveContainer width="100%" height={Math.max(260, cats.length * 34)}>
+            <BarChart data={cats} layout="vertical" margin={{ top: 0, right: 64, bottom: 0, left: 0 }} barCategoryGap={8}>
+              <CartesianGrid horizontal={false} stroke={CHART.grid} />
+              <XAxis type="number" tick={CHART.axis} tickLine={false} axisLine={false} tickFormatter={axisINR} />
+              <YAxis type="category" dataKey="category" tick={{ ...CHART.axis, fill: '#c9d6e6', width: 200 }} tickLine={false} axisLine={false} width={150} interval={0} />
+              <Tooltip cursor={{ fill: CHART.cursor }} content={<CategoryTip />} />
+              <Bar dataKey="revenue" fill={CHART.ice} maxBarSize={18} radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                <LabelList dataKey="revenue" position="right" formatter={(v) => formatINRCompact(Number(v))}
+                           style={{ fontSize: 11, fill: '#93a7c1' }} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Panel>
 
-        <div className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-zinc-900 mb-4">Customer Segments</h2>
-          {segments?.segments?.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={segments.segments} dataKey="size" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e) => e.name}>
-                  {segments.segments.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+        <Panel id="segments" title="Customer segments" className="xl:col-span-2"
+               subtitle={segments?.silhouette_score != null
+                 ? `KMeans over recency, frequency and spend. Silhouette ${segments.silhouette_score.toFixed(3)}.`
+                 : 'KMeans over recency, frequency and spend.'}>
+          {segs.length ? (
+            <ul className="space-y-4">
+              {segs.map((s) => (
+                <li key={s.name}>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="text-cloud">{s.name}</span>
+                    <span className="tabular-nums text-silver">{s.size.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 rounded-full bg-graphite-2">
+                    <div className="h-full rounded-full bg-lavender" style={{ width: `${(s.size / segs[0].size) * 100}%` }} />
+                  </div>
+                  <p className="mt-1 text-[11px] text-silver">
+                    avg {formatINRCompact(s.avg_total_spent)} · {s.avg_frequency.toFixed(1)} orders · last order ~{Math.round(s.avg_recency_days)}d before the latest
+                  </p>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p className="text-sm text-zinc-400 py-16 text-center">Not enough order history to segment customers yet.</p>
+            <p className="py-16 text-center text-sm text-silver">Not enough order history to segment customers yet.</p>
           )}
-          {segments?.silhouette_score != null && (
-            <p className="text-xs text-zinc-400 mt-2">Silhouette score: {segments.silhouette_score.toFixed(3)}</p>
-          )}
-        </div>
+        </Panel>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-zinc-900 mb-3">Top Products</h2>
-          <div className="space-y-2">
-            {products?.top_products.slice(0, 8).map((p) => (
-              <div key={p._id} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-700 truncate max-w-[60%]">{p.name}</span>
-                <span className="text-zinc-400">{p.units_sold} sold · ₹{p.revenue?.toLocaleString('en-IN')}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-zinc-900 mb-3">Low-Conversion Products</h2>
-          <div className="space-y-2">
-            {products?.low_conversion_products.slice(0, 8).map((p) => (
-              <div key={p._id} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-700 truncate max-w-[60%]">{p.name}</span>
-                <span className="text-zinc-400">{p.units_sold} sold</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Panel id="top" title="Best sellers" subtitle="By units sold across all paid orders.">
+          <ProductList rows={products?.top_products.slice(0, 8) ?? []}
+                       detail={(p) => `${(p.units_sold ?? 0).toLocaleString('en-IN')} sold · ${formatINRCompact(p.revenue ?? 0)}`} />
+        </Panel>
+        <Panel id="low" title="Slow movers" subtitle="Listed products with the fewest sales: candidates for a bundle or a discount.">
+          <ProductList rows={products?.low_conversion_products.slice(0, 8) ?? []}
+                       detail={(p) => `${(p.units_sold ?? 0).toLocaleString('en-IN')} sold · ${formatINR(p.revenue ?? 0)}`} />
+        </Panel>
       </div>
     </div>
+  )
+}
+
+function ProductList({ rows, detail }: { rows: Product[]; detail: (p: Product) => string }) {
+  return (
+    <ol className="divide-y divide-line">
+      {rows.map((p, i) => (
+        <li key={p._id} className="flex items-center gap-3 py-2.5 text-sm">
+          <span className="w-5 shrink-0 font-mono text-[11px] text-silver">{String(i + 1).padStart(2, '0')}</span>
+          <span className="min-w-0 flex-1 truncate text-cloud">{p.name}</span>
+          <span className="shrink-0 tabular-nums text-xs text-silver">{detail(p)}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function CategoryTip({ active, payload }: TipProps) {
+  if (!active || !payload?.length) return null
+  const c = payload[0].payload as CategoryRow
+  return (
+    <TipCard title={c.category} swatch={CHART.ice} rows={[
+      ['Revenue', formatINR(c.revenue)],
+      ['Units sold', c.units_sold.toLocaleString('en-IN')],
+      ['Products', c.product_count.toLocaleString('en-IN')],
+    ]} />
   )
 }

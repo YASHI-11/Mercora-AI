@@ -150,7 +150,7 @@ export default function ShoppingAssistant({ initialQuery }: {
           <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
             <div
               className={`max-w-[92%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm ${
-                m.role === "user" ? "rounded-br-md bg-violet text-white" : "rounded-bl-md bg-graphite-2 text-cloud"
+                m.role === "user" ? "rounded-br-md bg-violet text-on-accent" : "rounded-bl-md bg-graphite-2 text-cloud"
               }`}>
               {m.text}
               {m.products && m.products.length > 0 && (

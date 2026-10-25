@@ -166,9 +166,14 @@ export function FormsScene() {
 
 // ------------------------------------------- 05 · the collection emerges
 
+const TRENDING_MIN_PRICE = 2000
+
 export function ShopScene() {
   const { data: cats } = useCategories()
-  const { data: trending } = useProducts({ sort: 'popular', limit: 8, in_stock: true })
+  // Higher-value picks only: the API's min_price is inclusive and on list
+  // price, so the strict "above" check runs on the price shoppers pay.
+  const { data: trending } = useProducts({ sort: 'popular', limit: 12, in_stock: true, min_price: TRENDING_MIN_PRICE })
+  const picks = trending?.products.filter((p) => finalPrice(p) > TRENDING_MIN_PRICE).slice(0, 8)
   const { add, pendingId } = useAddToCart()
   const collections = [...(cats?.taxonomy ?? [])].sort((a, b) => b.count - a.count)
   return (
@@ -203,13 +208,16 @@ export function ShopScene() {
         </ul>
 
         <div className="mt-20 flex items-end justify-between gap-4">
-          <h3 className="text-2xl font-semibold text-white">Trending now</h3>
-          <Link to="/shop?sort=popular" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#B9DFFF] hover:text-white">
+          <div>
+            <h3 className="text-2xl font-semibold text-white">Trending now</h3>
+            <p className="mt-1 text-sm text-white/60">Popular picks above {formatINR(TRENDING_MIN_PRICE)}</p>
+          </div>
+          <Link to={`/shop?sort=popular&min_price=${TRENDING_MIN_PRICE}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-[#B9DFFF] hover:text-white">
             View all <ArrowRight size={15} />
           </Link>
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-          {(trending?.products ?? Array.from({ length: 8 }, () => undefined)).map((p, i) => (
+          {(picks ?? Array.from({ length: 8 }, () => undefined)).map((p, i) => (
             <div key={p?._id ?? i} className="shop-item">
               {p ? <ProductCard product={p} onAdd={add} adding={pendingId === p._id} />
                 : <div className="aspect-[3/4] animate-pulse rounded-2xl border border-white/10 bg-white/5" />}

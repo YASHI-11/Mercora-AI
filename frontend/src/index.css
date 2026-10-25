@@ -1,41 +1,37 @@
 @import "tailwindcss";
 
-/* Styles that apply only inside the customer storefront (the dark "Mercora AI"
-   theme). Shared components (StateViews, ProductImage) use `store:` so the
-   merchant dashboard keeps its light theme. */
-@custom-variant store (&:where(.storefront, .storefront *));
-
 @theme {
   --font-sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Instrument Serif", Georgia, serif;
   --font-grotesk: "Space Grotesk", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Merchant dashboard: warm, muted gold. */
-  --color-gold-50: #fbf7ee;
-  --color-gold-100: #f4e9cd;
-  --color-gold-200: #e8d29e;
-  --color-gold-300: #d9b467;
-  --color-gold-400: #c99a41;
-  --color-gold-500: #b3812f;
-  --color-gold-600: #966826;
-  --color-gold-700: #785121;
-  --color-gold-800: #5c3d1c;
-  --color-gold-900: #3e2913;
-
   --color-ink: #0c0b09;
 
-  /* Storefront palette (UI/UX spec §2.3). Black/graphite carry ~70% of the
-     surface; violet and cyan are reserved for AI features and active states. */
-  --color-obsidian: #08090d;
-  --color-graphite: #11131b;
-  --color-graphite-2: #181b26;
-  --color-line: #232634;
-  --color-violet: #8b5cf6;
-  --color-cyan: #53e4ff;
-  --color-cloud: #f5f5f7;
-  --color-silver: #9b9eac;
-  --color-lavender: #c7b8ff;
+  /* Brand palette for the storefront and the merchant console: the
+     homepage's midnight navy and ice, plus one warm "parcel kraft" accent.
+     Token names are historical (the first palette was black + violet/cyan);
+     their roles:
+       obsidian    page background (#071426, the homepage navy)
+       graphite    card surface; graphite-2 raised surface / image wells
+       line        hairline borders
+       cloud       primary text; silver muted text (>= 5.9:1 on every surface)
+       lavender    ice: accent text, eyebrows, links (information, AI)
+       cyan        bright ice: focus rings, recommendation reasons, highlights
+       violet      kraft, the only warm colour: sale badges, saved items, the
+                   shopper's own chat bubbles, active selections. Text on a
+                   kraft fill uses `on-accent` (white on kraft is 2:1).
+     The homepage (route /) keeps its original values via .theme-legacy. */
+  --color-obsidian: #071426;
+  --color-graphite: #0c1d35;
+  --color-graphite-2: #132945;
+  --color-line: #213a5e;
+  --color-violet: #e2ad66;
+  --color-on-accent: #071426;
+  --color-cyan: #8fcbff;
+  --color-cloud: #eef3fa;
+  --color-silver: #93a7c1;
+  --color-lavender: #b9dfff;
 
   --animate-scan: scan 1.6s ease-in-out infinite;
   @keyframes scan {
@@ -75,7 +71,7 @@ a, button {
 }
 
 ::selection {
-  background: var(--color-gold-200);
+  background: #e8d29e;
 }
 
 /* ---------------------------------------------------------------- storefront */
@@ -86,14 +82,32 @@ a, button {
 html[data-intro="playing"] .store-nav { opacity: 0; pointer-events: none; }
 
 .storefront {
+  --selection: rgba(185, 223, 255, 0.3);
+  --scrollbar: #24406a;
   color-scheme: dark;
   min-height: 100%;
   background: var(--color-obsidian);
   color: var(--color-cloud);
 }
 
+/* The homepage was designed against the first palette; it keeps it. */
+.theme-legacy {
+  --color-obsidian: #08090d;
+  --color-graphite: #11131b;
+  --color-graphite-2: #181b26;
+  --color-line: #232634;
+  --color-violet: #8b5cf6;
+  --color-on-accent: #ffffff;
+  --color-cyan: #53e4ff;
+  --color-cloud: #f5f5f7;
+  --color-silver: #9b9eac;
+  --color-lavender: #c7b8ff;
+  --selection: rgba(139, 92, 246, 0.45);
+  --scrollbar: #2a2d3a;
+}
+
 .storefront ::selection {
-  background: rgba(139, 92, 246, 0.45);
+  background: var(--selection);
   color: var(--color-cloud);
 }
 
@@ -131,13 +145,24 @@ html[data-intro="playing"] .store-nav { opacity: 0; pointer-events: none; }
 }
 
 .glass {
-  background: rgba(17, 19, 27, 0.72);
+  background: color-mix(in srgb, var(--color-graphite) 72%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
 .storefront ::-webkit-scrollbar { width: 10px; height: 10px; }
-.storefront ::-webkit-scrollbar-thumb { background: #2a2d3a; border-radius: 6px; }
+.storefront ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 6px; }
+
+/* Listing reveal: cards rise in as a page of results arrives (disabled by the
+   reduced-motion rule below). */
+.rise-in { animation: fadeUp 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Ambient light for non-home pages: the homepage's navy with a faint ice glow. */
+.ambient {
+  background:
+    radial-gradient(60rem 28rem at 85% -8rem, rgba(185, 223, 255, 0.09), transparent 70%),
+    radial-gradient(40rem 22rem at -10% 10rem, rgba(226, 173, 102, 0.05), transparent 70%);
+}
 .storefront ::-webkit-scrollbar-track { background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {

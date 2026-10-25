@@ -53,60 +53,60 @@ export default function Copilot() {
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border border-zinc-200 bg-white h-[70vh] shadow-sm">
-      <div className="flex items-center gap-2.5 border-b border-zinc-200 px-4 py-3.5 bg-gradient-to-b from-white to-zinc-50/60">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-gold-300">
-          <Sparkles size={13} />
+    <div className="flex h-[68vh] min-h-[460px] flex-col overflow-hidden rounded-3xl border border-line bg-graphite">
+      <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-lavender/10 text-lavender">
+          <Sparkles size={15} aria-hidden />
         </span>
-        <span className="font-display italic text-base text-zinc-900">AI Growth Copilot</span>
+        <div>
+          <p className="text-sm font-semibold text-cloud">Growth copilot</p>
+          <p className="text-[11px] text-silver">Answers from your orders, products and mined opportunities</p>
+        </div>
         <button onClick={newChat} title="Start a new chat"
-                className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900">
+                className="ml-auto flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-silver hover:border-lavender/50 hover:text-cloud">
           <MessageSquarePlus size={13} /> New chat
         </button>
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
+      <div ref={scrollRef} aria-live="polite" className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         {messages.map((m, i) => (
           <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-line ${
-              m.role === 'user' ? 'bg-ink text-white rounded-br-md' : 'bg-zinc-100 text-zinc-800 rounded-bl-md'
+            <div className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+              m.role === 'user' ? 'rounded-br-md bg-violet text-on-accent' : 'rounded-bl-md bg-graphite-2 text-cloud'
             }`}>
               {m.text}
             </div>
           </div>
         ))}
         {loading && (
-          <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3 w-fit">
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:-0.3s]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:-0.15s]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" />
+          <div className="flex w-fit items-center gap-1 rounded-2xl rounded-bl-md bg-graphite-2 px-4 py-3" aria-label="The copilot is thinking">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-lavender [animation-delay:-0.3s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-lavender [animation-delay:-0.15s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-lavender" />
           </div>
         )}
         {messages.length === 1 && (
           <div className="flex flex-wrap gap-2 pt-2">
             {SUGGESTIONS.map((s) => (
               <button key={s} onClick={() => send(s)}
-                      className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:border-gold-300 hover:bg-gold-50">
+                      className="rounded-full border border-line px-3.5 py-2 text-xs text-silver hover:border-lavender/50 hover:text-cloud">
                 {s}
               </button>
             ))}
           </div>
         )}
       </div>
-      <div className="border-t border-zinc-200 p-3">
-        <div className="flex items-center gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && send()}
-            placeholder="Ask the growth copilot…"
-            className="flex-1 rounded-full border border-zinc-200 px-4 py-2.5 text-sm outline-none focus:border-gold-300 focus:ring-2 focus:ring-gold-100"
-          />
-          <button onClick={() => send()} disabled={loading}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white hover:bg-zinc-800 disabled:opacity-50">
+      <form onSubmit={(e) => { e.preventDefault(); send() }} className="border-t border-line p-3">
+        <div className="flex items-center gap-2 rounded-full border border-line bg-obsidian/70 py-1 pl-4 pr-1 focus-within:border-lavender/60">
+          <label htmlFor="copilot-input" className="sr-only">Ask the growth copilot</label>
+          <input id="copilot-input" value={input} onChange={(e) => setInput(e.target.value)}
+                 placeholder="Ask about revenue, bundles, slow movers…"
+                 className="min-w-0 flex-1 bg-transparent py-2 text-sm text-cloud outline-none placeholder:text-silver/70" />
+          <button type="submit" disabled={loading || !input.trim()} aria-label="Send"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cloud text-obsidian hover:bg-white disabled:opacity-40">
             <Send size={15} />
           </button>
         </div>
-      </div>
+      </form>
     </div>
   )
 }

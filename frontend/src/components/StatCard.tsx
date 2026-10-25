@@ -1,9 +1,9 @@
 export default function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <p className="text-xs font-medium text-zinc-400">{label}</p>
-      <p className="text-2xl font-semibold text-zinc-900 mt-1.5">{value}</p>
-      {sub && <p className="text-xs text-zinc-400 mt-1">{sub}</p>}
+    <div className="rounded-2xl border border-line bg-graphite p-5">
+      <p className="text-xs text-silver">{label}</p>
+      <p className="mt-2 font-grotesk text-2xl font-semibold tracking-tight text-cloud tabular-nums">{value}</p>
+      {sub && <p className="mt-1 text-xs leading-relaxed text-silver">{sub}</p>}
     </div>
   )
 }

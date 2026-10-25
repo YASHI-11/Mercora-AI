@@ -129,7 +129,7 @@ function ProductView({ id }: { id?: string }) {
               {pendingId === product._id && <Loader2 size={15} className="animate-spin" />} Add to cart
             </button>
             <button onClick={buyNow} disabled={soldOut || pendingId === product._id}
-                    className="h-12 flex-1 rounded-full bg-violet px-6 text-sm font-semibold text-white hover:bg-violet/90 disabled:opacity-50">
+                    className="h-12 flex-1 rounded-full bg-violet px-6 text-sm font-semibold text-on-accent hover:bg-violet/90 disabled:opacity-50">
               Buy now
             </button>
             <button onClick={() => wishlist.toggle(product._id)} aria-pressed={saved}

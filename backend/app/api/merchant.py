@@ -29,6 +29,9 @@ async def overview(merchant_id: str | None = None):
         "ai_attributed_revenue": round(totals["ai_attributed_revenue"], 2),
         "ai_attributed_orders": totals["ai_attributed_orders"],
         "growth_opportunities_count": opportunities_count,
+        # 0 for imported history: conversion_rate then falls back to
+        # orders/orders (100%), which the dashboard must not present as real.
+        "checkout_sessions": carts_started,
     }
 
 

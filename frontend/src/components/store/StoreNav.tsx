@@ -134,7 +134,7 @@ export default function StoreNav() {
                   className="relative flex h-10 w-10 items-center justify-center rounded-full text-silver hover:bg-white/5 hover:text-cloud">
               <ShoppingBag size={18} />
               {itemCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet px-1 text-[10px] font-semibold text-white">
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet px-1 text-[10px] font-semibold text-on-accent">
                   {itemCount}
                 </span>
               )}

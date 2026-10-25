@@ -89,4 +89,13 @@ export function availability(p: Pick<Product, 'inventory'>) {
 export const formatINR = (value: number) =>
   `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 
+/** Indian short scale for dashboards: ₹87.2 Cr, ₹4.6 L, ₹12.3K. */
+export function formatINRCompact(value: number): string {
+  const abs = Math.abs(value)
+  if (abs >= 1e7) return `₹${(value / 1e7).toFixed(1)} Cr`
+  if (abs >= 1e5) return `₹${(value / 1e5).toFixed(1)} L`
+  if (abs >= 1e3) return `₹${(value / 1e3).toFixed(1)}K`
+  return `₹${Math.round(value)}`
+}
+
 export const finalPrice = (p: Pick<Product, 'price' | 'discount'>) => p.price * (1 - (p.discount || 0) / 100)
