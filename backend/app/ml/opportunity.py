@@ -48,6 +48,11 @@ def build_bundle_opportunities(rules: list[dict], products_by_id: dict, orders_c
             "support": rule["support"],
             "confidence": rule["confidence"],
             "lift": rule["lift"],
+            # For explanations (app/ml/explain.co_purchase).
+            "support_a": rule.get("support_a"),
+            "support_b": rule.get("support_b"),
+            "orders_together": rule.get("orders_together"),
+            "baskets_analysed": rule.get("baskets_analysed"),
             "score": score,
             "expected_uplift": expected_uplift,
             "recommended_discount": recommended_discount,

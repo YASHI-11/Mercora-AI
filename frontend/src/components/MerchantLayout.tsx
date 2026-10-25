@@ -5,6 +5,7 @@ const tabs = [
   { to: '/merchant/analytics', label: 'Analytics' },
   { to: '/merchant/products', label: 'Products' },
   { to: '/merchant/opportunities', label: 'Growth Opportunities' },
+  { to: '/merchant/ml-evaluation', label: 'ML Evaluation' },
   { to: '/merchant/copilot', label: 'AI Copilot' },
   { to: '/merchant/audit', label: 'Audit Trail' },
   { to: '/merchant/settings', label: 'Settings' },

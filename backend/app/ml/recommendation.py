@@ -6,6 +6,8 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from app.ml import explain
+
 
 def _doc_text(p: dict) -> str:
     return " ".join([
@@ -33,6 +35,11 @@ def _match_reason(source: dict, candidate: dict) -> str:
     return "Similar based on content and popularity signals"
 
 
+# Search ranking blend (rank_by_intent).
+TEXT_WEIGHT = 0.75
+RATING_WEIGHT = 0.25
+
+
 class RecommendationEngine:
     def __init__(self, products: list[dict]):
         self.products = products
@@ -41,10 +48,11 @@ class RecommendationEngine:
             texts = [_doc_text(p) for p in products]
             self.vectorizer = TfidfVectorizer(stop_words="english", max_features=2000)
             self.matrix = self.vectorizer.fit_transform(texts)
+            self.feature_names = self.vectorizer.get_feature_names_out()
         else:
             self.matrix = None
 
-    def similar_products(self, product_id: str, top_k: int = 6) -> list[dict]:
+    def similar_products(self, product_id: str, top_k: int = 6, explained: bool = True) -> list[dict]:
         idx = self.id_to_idx.get(product_id)
         if idx is None or self.matrix is None:
             return []
@@ -62,6 +70,9 @@ class RecommendationEngine:
             p = dict(self.products[i])
             p["similarity_score"] = round(float(score), 4)
             p["reason"] = _match_reason(source, p)
+            if explained:  # offline evaluation asks for hundreds and only needs ids
+                shared = explain.top_shared_terms(self.matrix[idx], self.matrix[i], self.feature_names)
+                p["explanation"] = explain.content(float(score), shared)
             results.append(p)
             if len(results) >= top_k:
                 break
@@ -82,12 +93,16 @@ class RecommendationEngine:
         ratings = np.array([p.get("rating", 4.0) for p in candidates])
         ratings_range = np.ptp(ratings)
         pop = (ratings - ratings.min()) / (ratings_range + 1e-9) if ratings_range > 0 else np.zeros(len(ratings))
-        blended = 0.75 * sims + 0.25 * pop
+        blended = TEXT_WEIGHT * sims + RATING_WEIGHT * pop
         order = np.argsort(-blended)
+        names = vec.get_feature_names_out()
         ranked = []
         for i in order[:top_k]:
             p = dict(candidates[i])
             p["match_score"] = round(float(blended[i]), 4)
+            matched = explain.top_shared_terms(mat[-1], mat[i], names)
+            p["explanation"] = explain.intent(float(blended[i]), float(sims[i]), float(pop[i]), matched,
+                                              TEXT_WEIGHT, RATING_WEIGHT)
             ranked.append(p)
         return ranked
 
@@ -96,4 +111,4 @@ class RecommendationEngine:
         # 5.0 from three (retail ratings are implicit, from repeat purchases).
         ranked = sorted(self.products, key=lambda p: (p.get("rating", 0), p.get("rating_count", 0)),
                         reverse=True)
-        return ranked[:top_k]
+        return [{**p, "explanation": explain.popularity(p, rank)} for rank, p in enumerate(ranked[:top_k], 1)]

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Star, Plus, Heart, Loader2, GitCompareArrows } from 'lucide-react'
 import type { Product } from '../types'
 import ProductImage from './ProductImage'
+import WhyThis from './WhyThis'
 import { useWishlist, useCompare } from '../hooks/useStoredIds'
 import { formatINR, finalPrice, availability } from '../hooks/useCatalog'
 
@@ -47,7 +48,10 @@ export default function ProductCard({ product, onAdd, adding, compare = false }:
         <h3 className="text-[15px] font-medium leading-snug text-cloud">
           <Link to={href} className="line-clamp-2 hover:text-lavender">{product.name}</Link>
         </h3>
-        {product.reason && <p className="line-clamp-2 text-xs text-cyan/90">{product.reason}</p>}
+        {(product.explanation?.summary ?? product.reason) && (
+          <p className="line-clamp-2 text-xs text-cyan/90">{product.explanation?.summary ?? product.reason}</p>
+        )}
+        {product.explanation && <WhyThis explanation={product.explanation} />}
 
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div className="flex items-baseline gap-1.5">

@@ -30,6 +30,7 @@ const Opportunities = lazy(() => import('./pages/merchant/Opportunities'))
 const Copilot = lazy(() => import('./pages/merchant/Copilot'))
 const Audit = lazy(() => import('./pages/merchant/Audit'))
 const Settings = lazy(() => import('./pages/merchant/Settings'))
+const MlEvaluation = lazy(() => import('./pages/merchant/MlEvaluation'))
 
 /** Scroll to top on page changes, or to the #anchor when one is given. */
 function ScrollManager() {
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="analytics" element={<Analytics />} />
             <Route path="products" element={<MerchantProducts />} />
             <Route path="opportunities" element={<Opportunities />} />
+            <Route path="ml-evaluation" element={<MlEvaluation />} />
             <Route path="copilot" element={<Copilot />} />
             <Route path="audit" element={<Audit />} />
             <Route path="settings" element={<Settings />} />

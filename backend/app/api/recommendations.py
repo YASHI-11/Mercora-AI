@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.database.connection import CATALOG_FETCH_LIMIT, get_db
+from app.ml import explain
 from app.ml.recommendation import RecommendationEngine
 from app.agents.shopping_agent import get_cross_sell_products
 from app.services import events
@@ -41,8 +42,13 @@ async def personalized(payload: PersonalizedRequest):
         seed_ids = [e["data"]["product_id"] for e in events_history]
         collected: dict[str, dict] = {}
         for pid in seed_ids:
+            seed = engine.products[engine.id_to_idx[pid]] if pid in engine.id_to_idx else None
             for p in engine.similar_products(pid, top_k=4):
-                collected[p["_id"]] = p
+                if seed:
+                    p["explanation"] = explain.because_of(p["explanation"], seed["name"])
+                # Keep each product's strongest match across seeds.
+                if p.get("similarity_score", 0) >= collected.get(p["_id"], {}).get("similarity_score", -1):
+                    collected[p["_id"]] = p
         results = sorted(collected.values(), key=lambda p: p.get("similarity_score", 0), reverse=True)
         results = results[:payload.top_k]
         basis = "recent_cart_activity"

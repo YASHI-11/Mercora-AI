@@ -54,3 +54,4 @@ async def ensure_indexes():
     await db.audit_logs.create_index("created_at")
     await db.agent_conversations.create_index("session_id")
     await db.llm_usage_events.create_index("created_at")
+    await db.ml_evaluations.create_index("generated_at")

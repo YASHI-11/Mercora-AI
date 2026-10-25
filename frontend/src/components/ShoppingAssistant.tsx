@@ -6,6 +6,7 @@ import { useCart } from "../hooks/useCart"
 import { useChatHistory } from "../hooks/useChatHistory"
 import type { ChatMessage, ShoppingAgentResponse } from "../types"
 import ProductImage from "./ProductImage"
+import WhyThis from "./WhyThis"
 
 const GREETING: ChatMessage = {
   role: "assistant",
@@ -160,9 +161,10 @@ export default function ShoppingAssistant({ initialQuery }: {
                     return (
                       <div
                         key={p._id}
-                        className={`flex items-center justify-between gap-2 rounded-xl border bg-obsidian/60 px-3 py-2 ${
+                        className={`rounded-xl border bg-obsidian/60 px-3 py-2 ${
                           p.best_pick ? "border-cyan/50" : "border-line"
                         }`}>
+                      <div className="flex items-center justify-between gap-2">
                         <Link to={`/shop/product/${p._id}`} className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
                           <span className="w-3 shrink-0 font-mono text-[10px] text-silver">{idx + 1}</span>
                           <ProductImage src={p.image} name={p.name} category={p.category}
@@ -185,6 +187,8 @@ export default function ShoppingAssistant({ initialQuery }: {
                           }`}>
                           {isAdded ? (<><Check size={11} /> Added</>) : (<><Plus size={11} /> {isAdding ? "Adding…" : "Add"}</>)}
                         </button>
+                      </div>
+                      {p.explanation && <div className="mt-1.5 pl-5"><WhyThis explanation={p.explanation} compact /></div>}
                       </div>
                     )
                   })}

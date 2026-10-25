@@ -20,6 +20,8 @@ export interface Product {
   match_score?: number
   similarity_score?: number
   reason?: string
+  /** Why a recommender picked this product (backend app/ml/explain.py). */
+  explanation?: Explanation
   confidence?: number
   best_pick?: boolean
   units_sold?: number
@@ -143,4 +145,68 @@ export interface MerchantOverview {
   ai_attributed_revenue: number
   ai_attributed_orders: number
   growth_opportunities_count: number
+}
+
+export type ExplanationMethod = 'co_purchase' | 'content' | 'intent' | 'popularity'
+
+export interface Explanation {
+  method: ExplanationMethod
+  /** One sentence for shoppers. */
+  summary: string
+  /** Pre-formatted numbers behind the pick, e.g. { label: 'Lift', value: '3.10×' }. */
+  signals: { label: string; value: string }[]
+  metrics: Record<string, unknown>
+}
+
+export interface RecommenderScores {
+  precision_at_k: number
+  recall_at_k: number
+  hit_rate: number
+  /** Share of evaluated customers the method could recommend anything to. */
+  coverage: number
+}
+
+export interface MlEvaluation {
+  generated_at: string
+  source: 'scripts/evaluate_ml.py' | 'merchant_ui'
+  k: number
+  duration_seconds: number
+  data: { products: number; customers: number; paid_orders: number; train_orders: number; test_customers: number }
+  recommendations: {
+    n_evaluated: number
+    content: RecommenderScores
+    rules: RecommenderScores
+    popularity_baseline: RecommenderScores
+  } | null
+  rules: {
+    count: number
+    mining_seconds: number
+    support?: { min: number; max: number; avg: number }
+    confidence?: { min: number; max: number; avg: number }
+    lift?: { min: number; max: number; avg: number }
+    holdout: {
+      n_rules: number
+      min_baskets: number
+      avg_train_confidence: number
+      avg_holdout_confidence: number
+      points: {
+        product_a: string
+        product_b: string
+        train_confidence: number
+        holdout_confidence: number
+        holdout_baskets: number
+        lift: number
+      }[]
+    } | null
+  }
+  segmentation: {
+    silhouette_score: number | null
+    segments: { cluster_id: number; name: string; size: number; avg_total_spent: number; avg_frequency: number; avg_recency_days: number }[]
+  }
+}
+
+export interface MlEvaluationResponse {
+  /** null until the first evaluation has been run. */
+  latest: MlEvaluation | null
+  history: Pick<MlEvaluation, 'generated_at' | 'source' | 'recommendations'>[]
 }

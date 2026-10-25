@@ -66,12 +66,20 @@ def mine_association_rules(orders: list[dict], min_support: float = 0.01,
         consequents = list(row["consequents"])
         if len(antecedents) != 1 or len(consequents) != 1:
             continue
+        # Supports are fractions of the baskets mined here (multi-item orders
+        # of frequent items), so the absolute counts are exact, not estimates.
+        # Both single-item supports are kept so confidence can be computed in
+        # either direction (P(a|b) = support / support_b) for explanations.
         results.append({
             "product_a": antecedents[0],
             "product_b": consequents[0],
             "support": round(float(row["support"]), 4),
             "confidence": round(float(row["confidence"]), 4),
             "lift": round(float(row["lift"]), 4),
+            "support_a": round(float(row["antecedent support"]), 4),
+            "support_b": round(float(row["consequent support"]), 4),
+            "orders_together": int(round(float(row["support"]) * len(transactions))),
+            "baskets_analysed": len(transactions),
         })
     results.sort(key=lambda r: r["lift"], reverse=True)
     return results

@@ -10,6 +10,7 @@ from within the agent -- that is a separate, explicit checkout step.
 import re
 
 from app.database.connection import CATALOG_FETCH_LIMIT, get_db
+from app.ml import explain
 from app.ml.recommendation import RecommendationEngine
 from app.agents.llm_provider import parse_shopping_intent_llm, generate_conversational_reply
 from app.services import events
@@ -99,13 +100,18 @@ async def get_cross_sell_products(product_id: str, top_k: int = 3) -> list[dict]
         other_id = r["products"][1] if r["products"][0] == product_id else r["products"][0]
         other = await db.products.find_one({"_id": other_id})
         if other:
-            results.append({**other, "reason": r["reason"], "confidence": r.get("confidence", 0.5)})
+            why = explain.co_purchase(r, product_id)
+            results.append({**other, "reason": why["summary"], "explanation": why,
+                            "confidence": why["metrics"]["confidence"] or r.get("confidence", 0.5)})
 
     if not results:
+        # No mined rule involves this product: fall back to content similarity,
+        # and say so -- explanation.method tells callers these are not
+        # co-purchases (there is no view data to claim "viewed alongside").
         all_products = await _all_products()
         engine = RecommendationEngine(all_products)
         similar = engine.similar_products(product_id, top_k=top_k)
-        results = [{**p, "reason": f"Frequently viewed alongside similar {p['category']} products",
+        results = [{**p, "reason": p["explanation"]["summary"],
                     "confidence": p.get("similarity_score", 0.5)} for p in similar]
     return results
 
@@ -342,10 +348,17 @@ async def handle_shopping_message(message: str, customer_id: str, session_id: st
         cross_sell = [c for c in await get_cross_sell_products(top["_id"], top_k=2) if c["_id"] != top["_id"]][:1]
         if cross_sell:
             cs = cross_sell[0]
-            reply_lines.append(
-                f"\nCustomers buying {top['name']} frequently add {cs['name']} (₹{cs['price']:.0f}). "
-                f"Want me to add it too?"
-            )
+            if cs["explanation"]["method"] == "co_purchase":
+                together = cs["explanation"]["metrics"].get("orders_together")
+                evidence = f" (bought together in {together:,} orders)" if together else ""
+                reply_lines.append(
+                    f"\nCustomers buying {top['name']} frequently add {cs['name']} (₹{cs['price']:.0f}){evidence}. "
+                    f"Want me to add it too?"
+                )
+            else:
+                reply_lines.append(
+                    f"\nA similar product you might like: {cs['name']} (₹{cs['price']:.0f}). Want me to add it too?"
+                )
 
         if len(shown) > 1:
             reply_lines.append(f"\nTell me \"first\", \"second\", etc. to focus on one, "

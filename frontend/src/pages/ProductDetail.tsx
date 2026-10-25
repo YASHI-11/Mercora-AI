@@ -45,6 +45,9 @@ function ProductView({ id }: { id?: string }) {
   const maxQty = Math.max(1, Math.min(product.inventory ?? 99, 99))
   const soldOut = product.inventory === 0
   const saved = wishlist.has(product._id)
+  // Without a mined rule the backend falls back to similar products, which
+  // "You may also like" already shows -- only real co-purchases belong here.
+  const boughtTogether = recs?.cross_sell.filter((p) => p.explanation?.method === 'co_purchase') ?? []
 
   async function buyNow() {
     if (await add(product!, qty)) navigate('/checkout')
@@ -199,18 +202,21 @@ function ProductView({ id }: { id?: string }) {
         </div>
       </section>
 
-      {recs && recs.cross_sell.length > 0 && (
+      {boughtTogether.length > 0 && (
         <section aria-labelledby="fbt" className="mt-12">
           <h2 id="fbt" className="text-2xl font-semibold text-cloud">Frequently bought together</h2>
-          <p className="mb-6 mt-1 text-sm text-silver">From real baskets of customers who bought this.</p>
+          <p className="mb-6 mt-1 text-sm text-silver">
+            Association rules mined from real baskets of customers who bought this. Open “Why this?” for the numbers.
+          </p>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-            {recs.cross_sell.map((p) => <ProductCard key={p._id} product={p} onAdd={add} adding={pendingId === p._id} />)}
+            {boughtTogether.map((p) => <ProductCard key={p._id} product={p} onAdd={add} adding={pendingId === p._id} />)}
           </div>
         </section>
       )}
       {recs && recs.similar.length > 0 && (
         <section aria-labelledby="similar" className="mt-16">
-          <h2 id="similar" className="mb-6 text-2xl font-semibold text-cloud">You may also like</h2>
+          <h2 id="similar" className="text-2xl font-semibold text-cloud">You may also like</h2>
+          <p className="mb-6 mt-1 text-sm text-silver">Products with the most similar descriptions, by TF-IDF text similarity.</p>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
             {recs.similar.slice(0, 8).map((p) => <ProductCard key={p._id} product={p} onAdd={add} adding={pendingId === p._id} />)}
           </div>
