@@ -6,9 +6,9 @@ import type { AuditLog } from '../../types'
 
 // Status is shown with an icon and a word, never colour alone.
 const STATUS: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
-  approved: { label: 'Approved', icon: CheckCircle2, className: 'bg-emerald-400/10 text-emerald-300' },
-  rejected: { label: 'Rejected', icon: XCircle, className: 'bg-red-400/10 text-red-300' },
-  'n/a': { label: 'Automatic', icon: CircleDashed, className: 'bg-white/5 text-silver' },
+  approved: { label: 'Approved', icon: CheckCircle2, className: 'bg-good/10 text-good' },
+  rejected: { label: 'Rejected', icon: XCircle, className: 'bg-bad/10 text-bad' },
+  'n/a': { label: 'Automatic', icon: CircleDashed, className: 'bg-tint/5 text-silver' },
 }
 
 export default function Audit() {

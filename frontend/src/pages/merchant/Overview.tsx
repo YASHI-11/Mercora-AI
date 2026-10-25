@@ -41,7 +41,7 @@ export default function Overview() {
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-3xl border border-line bg-graphite">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(40rem_18rem_at_90%_-4rem,rgba(185,223,255,0.12),transparent_70%)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(40rem_18rem_at_90%_-4rem,rgba(36,87,214,0.08),transparent_70%)]" />
         <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,280px)_1fr] lg:items-end">
           <div>
             <p className="eyebrow">Revenue, last {WINDOW} days</p>
@@ -66,17 +66,17 @@ export default function Overview() {
               <AreaChart data={days} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="rev-wash" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART.ice} stopOpacity={0.18} />
-                    <stop offset="100%" stopColor={CHART.ice} stopOpacity={0} />
+                    <stop offset="0%" stopColor={CHART.accent} stopOpacity={0.18} />
+                    <stop offset="100%" stopColor={CHART.accent} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={CHART.grid} />
                 <XAxis dataKey="date" tick={CHART.axis} tickLine={false} axisLine={false} minTickGap={40}
                        tickFormatter={(d: string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} />
                 <YAxis tick={CHART.axis} tickLine={false} axisLine={false} width={48} tickFormatter={axisINR} />
-                <Tooltip cursor={{ stroke: CHART.ice, strokeOpacity: 0.3 }} content={<DayTip />} />
-                <Area type="monotone" dataKey="revenue" stroke={CHART.ice} strokeWidth={2} fill="url(#rev-wash)"
-                      activeDot={{ r: 4, fill: CHART.ice, stroke: CHART.surface, strokeWidth: 2 }} isAnimationActive={false} />
+                <Tooltip cursor={{ stroke: CHART.accent, strokeOpacity: 0.3 }} content={<DayTip />} />
+                <Area type="monotone" dataKey="revenue" stroke={CHART.accent} strokeWidth={2} fill="url(#rev-wash)"
+                      activeDot={{ r: 4, fill: CHART.accent, stroke: CHART.surface, strokeWidth: 2 }} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -100,7 +100,7 @@ export default function Overview() {
             <span className="font-grotesk text-2xl font-semibold text-cloud tabular-nums">{data.growth_opportunities_count}</span>
             {' '}bundle and upsell opportunities are pending review.
           </p>
-          <Link to="/merchant/opportunities" className="inline-flex items-center gap-1.5 rounded-full bg-cloud px-4 py-2 text-xs font-semibold text-obsidian hover:bg-white">
+          <Link to="/merchant/opportunities" className="inline-flex items-center gap-1.5 rounded-full bg-cloud px-4 py-2 text-xs font-semibold text-obsidian hover:bg-cloud-strong">
             Review opportunities <ArrowRight size={14} />
           </Link>
         </div>

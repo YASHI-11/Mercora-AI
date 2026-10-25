@@ -41,8 +41,8 @@ export default function Cart() {
           <p className="text-cloud">Your cart is empty.</p>
           <p className="text-sm text-silver">Browse the catalogue, or describe what you need to the AI assistant.</p>
           <div className="mt-3 flex gap-3">
-            <Link to="/shop" className="rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">Browse products</Link>
-            <Link to="/assistant" className="rounded-full border border-line px-6 py-3 text-sm font-semibold text-cloud hover:bg-white/5">Ask the assistant</Link>
+            <Link to="/shop" className="rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong">Browse products</Link>
+            <Link to="/assistant" className="rounded-full border border-line px-6 py-3 text-sm font-semibold text-cloud hover:bg-tint/5">Ask the assistant</Link>
           </div>
         </div>
       ) : (
@@ -68,7 +68,7 @@ export default function Cart() {
                 </div>
                 <span className="w-24 text-right text-sm font-semibold text-cloud">{formatINR(item.line_total)}</span>
                 <button onClick={() => setQty(item.product_id, item.name, 0)} aria-label={`Remove ${item.name}`}
-                        className="flex h-9 w-9 items-center justify-center rounded-full text-silver hover:bg-white/5 hover:text-red-400">
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-silver hover:bg-tint/5 hover:text-bad">
                   <Trash2 size={15} />
                 </button>
               </li>
@@ -79,12 +79,12 @@ export default function Cart() {
             <h2 className="text-lg font-semibold text-cloud">Order summary</h2>
             <dl className="mt-5 space-y-3 text-sm">
               <div className="flex justify-between text-silver"><dt>Subtotal</dt><dd className="text-cloud">{formatINR(cart.subtotal)}</dd></div>
-              {savings > 0 && <div className="flex justify-between text-silver"><dt>Discount</dt><dd className="text-emerald-400">−{formatINR(savings)}</dd></div>}
+              {savings > 0 && <div className="flex justify-between text-silver"><dt>Discount</dt><dd className="text-good">−{formatINR(savings)}</dd></div>}
               <div className="flex justify-between text-silver"><dt>Delivery</dt><dd className="text-cloud">No charge</dd></div>
               <div className="flex justify-between border-t border-line pt-3 text-base font-semibold text-cloud"><dt>Total</dt><dd>{formatINR(cart.total)}</dd></div>
             </dl>
             <button onClick={() => navigate('/checkout')}
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-cloud py-3.5 text-sm font-semibold text-obsidian hover:bg-white">
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-cloud py-3.5 text-sm font-semibold text-obsidian hover:bg-cloud-strong">
               Proceed to checkout <ArrowRight size={15} />
             </button>
             <Link to="/shop" className="mt-4 block text-center text-xs text-silver hover:text-cloud">Continue shopping</Link>

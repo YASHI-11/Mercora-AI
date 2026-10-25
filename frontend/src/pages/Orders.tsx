@@ -6,9 +6,9 @@ import { LoadingState, ErrorState, EmptyState } from '../components/StateViews'
 import type { Order } from '../types'
 
 const statusColor: Record<string, string> = {
-  paid: 'bg-emerald-500/15 text-emerald-300',
-  pending: 'bg-amber-400/15 text-amber-300',
-  failed: 'bg-red-500/15 text-red-300',
+  paid: 'bg-good/10 text-good',
+  pending: 'bg-warn/10 text-warn',
+  failed: 'bg-bad/10 text-bad',
 }
 
 export default function Orders() {
@@ -32,7 +32,7 @@ export default function Orders() {
             <div key={o._id} className="rounded-2xl border border-line bg-graphite p-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-mono text-silver">{o._id}</span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[o.payment_status] || 'bg-white/10 text-silver'}`}>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[o.payment_status] || 'bg-tint/10 text-silver'}`}>
                   {o.payment_status}
                 </span>
               </div>

@@ -31,7 +31,7 @@ export function Panel({ title, subtitle, action, children, className = '', id }:
 /** Tooltip body for recharts `content`: a title line and label/value rows. */
 export function TipCard({ title, rows, swatch }: { title: ReactNode; rows: [string, ReactNode][]; swatch?: string }) {
   return (
-    <div className="max-w-xs rounded-xl border border-line bg-graphite-2/95 px-3 py-2 text-xs shadow-xl shadow-black/40 backdrop-blur">
+    <div className="max-w-xs rounded-xl border border-line bg-graphite-2/95 px-3 py-2 text-xs shadow-xl shadow-shade/40 backdrop-blur">
       <p className="flex items-center gap-1.5 font-medium text-cloud">
         {swatch && <span aria-hidden className="h-2 w-2 shrink-0 rounded-sm" style={{ background: swatch }} />}
         {title}

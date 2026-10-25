@@ -81,9 +81,9 @@ export function useAddToCart() {
 
 export function availability(p: Pick<Product, 'inventory'>) {
   if (p.inventory == null) return null
-  if (p.inventory <= 0) return { label: 'Out of stock', tone: 'text-red-400' }
-  if (p.inventory <= 15) return { label: `Only ${p.inventory} left`, tone: 'text-amber-300' }
-  return { label: 'In stock', tone: 'text-emerald-400' }
+  if (p.inventory <= 0) return { label: 'Out of stock', tone: 'text-bad' }
+  if (p.inventory <= 15) return { label: `Only ${p.inventory} left`, tone: 'text-warn' }
+  return { label: 'In stock', tone: 'text-good' }
 }
 
 export const formatINR = (value: number) =>

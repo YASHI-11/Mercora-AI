@@ -72,7 +72,7 @@ export default function ProductCard({ product, onAdd, adding, compare = false }:
         <div className="mt-2 flex items-center gap-2">
           {onAdd && (
             <button onClick={() => onAdd(product)} disabled={adding || product.inventory === 0}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-cloud py-2.5 text-xs font-semibold text-obsidian hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-cloud py-2.5 text-xs font-semibold text-obsidian hover:bg-cloud-strong disabled:cursor-not-allowed disabled:opacity-50">
               {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
               {adding ? 'Adding…' : 'Add to cart'}
             </button>

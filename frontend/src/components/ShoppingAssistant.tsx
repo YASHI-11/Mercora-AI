@@ -132,15 +132,15 @@ export default function ShoppingAssistant({ initialQuery }: {
         <button
           onClick={newChat}
           title="Start a new chat"
-          className="ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-silver hover:bg-white/5 hover:text-cloud">
+          className="ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-silver hover:bg-tint/5 hover:text-cloud">
           <MessageSquarePlus size={13} /> New chat
         </button>
       </div>
       {llmNotice && (
-        <div role="status" className="flex items-start gap-2 border-b border-amber-400/20 bg-amber-400/10 px-5 py-2.5 text-xs leading-snug text-amber-200">
+        <div role="status" className="flex items-start gap-2 border-b border-warn/25 bg-warn/10 px-5 py-2.5 text-xs leading-snug text-warn">
           <AlertTriangle size={13} className="mt-px shrink-0" aria-hidden />
           <span className="flex-1">{llmNotice}</span>
-          <button onClick={() => setLlmNotice(null)} aria-label="Dismiss notice" className="shrink-0 hover:text-white">
+          <button onClick={() => setLlmNotice(null)} aria-label="Dismiss notice" className="shrink-0 hover:text-cloud">
             <X size={12} />
           </button>
         </div>
@@ -183,7 +183,7 @@ export default function ShoppingAssistant({ initialQuery }: {
                           onClick={() => addToCart(p._id)}
                           disabled={isAdding}
                           className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold disabled:opacity-60 ${
-                            isAdded ? "bg-emerald-500 text-white" : "bg-cloud text-obsidian hover:bg-white"
+                            isAdded ? "bg-good-fill text-white" : "bg-cloud text-obsidian hover:bg-cloud-strong"
                           }`}>
                           {isAdded ? (<><Check size={11} /> Added</>) : (<><Plus size={11} /> {isAdding ? "Adding…" : "Add"}</>)}
                         </button>
@@ -240,7 +240,7 @@ export default function ShoppingAssistant({ initialQuery }: {
             type="submit"
             disabled={loading}
             aria-label="Send"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cloud text-obsidian hover:bg-white disabled:opacity-50">
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cloud text-obsidian hover:bg-cloud-strong disabled:opacity-50">
             <Send size={15} />
           </button>
         </div>

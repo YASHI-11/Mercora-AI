@@ -102,7 +102,7 @@ export default function Copilot() {
                  placeholder="Ask about revenue, bundles, slow movers…"
                  className="min-w-0 flex-1 bg-transparent py-2 text-sm text-cloud outline-none placeholder:text-silver/70" />
           <button type="submit" disabled={loading || !input.trim()} aria-label="Send"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cloud text-obsidian hover:bg-white disabled:opacity-40">
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cloud text-obsidian hover:bg-cloud-strong disabled:opacity-40">
             <Send size={15} />
           </button>
         </div>

@@ -38,11 +38,11 @@ export default function Analytics() {
             <BarChart data={cats} layout="vertical" margin={{ top: 0, right: 64, bottom: 0, left: 0 }} barCategoryGap={8}>
               <CartesianGrid horizontal={false} stroke={CHART.grid} />
               <XAxis type="number" tick={CHART.axis} tickLine={false} axisLine={false} tickFormatter={axisINR} />
-              <YAxis type="category" dataKey="category" tick={{ ...CHART.axis, fill: '#c9d6e6', width: 200 }} tickLine={false} axisLine={false} width={150} interval={0} />
+              <YAxis type="category" dataKey="category" tick={{ ...CHART.axis, fill: CHART.label, width: 200 }} tickLine={false} axisLine={false} width={150} interval={0} />
               <Tooltip cursor={{ fill: CHART.cursor }} content={<CategoryTip />} />
-              <Bar dataKey="revenue" fill={CHART.ice} maxBarSize={18} radius={[0, 4, 4, 0]} isAnimationActive={false}>
+              <Bar dataKey="revenue" fill={CHART.accent} maxBarSize={18} radius={[0, 4, 4, 0]} isAnimationActive={false}>
                 <LabelList dataKey="revenue" position="right" formatter={(v) => formatINRCompact(Number(v))}
-                           style={{ fontSize: 11, fill: '#93a7c1' }} />
+                           style={{ fontSize: 11, fill: CHART.axis.fill }} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -107,7 +107,7 @@ function CategoryTip({ active, payload }: TipProps) {
   if (!active || !payload?.length) return null
   const c = payload[0].payload as CategoryRow
   return (
-    <TipCard title={c.category} swatch={CHART.ice} rows={[
+    <TipCard title={c.category} swatch={CHART.accent} rows={[
       ['Revenue', formatINR(c.revenue)],
       ['Units sold', c.units_sold.toLocaleString('en-IN')],
       ['Products', c.product_count.toLocaleString('en-IN')],

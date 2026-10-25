@@ -26,9 +26,10 @@ export default function Collections() {
           <article key={c.category} className="group relative isolate flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-3xl border border-line bg-graphite p-6">
             <ProductImage src={c.image} name={c.top_product || c.category} category={c.category}
                           className="absolute inset-0 -z-10 h-full w-full transition-transform duration-700 group-hover:scale-[1.05]" />
-            <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-obsidian via-obsidian/60 to-transparent" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-lavender">{c.count} products</span>
-            <h2 className="mt-2 text-3xl font-semibold text-cloud">
+            {/* Text over a photo: an ink scrim with paper-coloured text reads on any image. */}
+            <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-cloud/90 via-cloud/45 to-transparent" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-obsidian/80">{c.count} products</span>
+            <h2 className="mt-2 text-3xl font-semibold text-obsidian">
               <Link to={`/shop?category=${encodeURIComponent(c.category)}`} className="after:absolute after:inset-0">
                 {c.category}
               </Link>
@@ -37,13 +38,13 @@ export default function Collections() {
               {c.subcategories.map((s) => (
                 <li key={s}>
                   <Link to={`/shop?category=${encodeURIComponent(c.category)}&subcategory=${encodeURIComponent(s)}`}
-                        className="relative z-10 rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-cloud backdrop-blur hover:bg-white/20">
+                        className="relative z-10 rounded-full bg-obsidian/15 px-2.5 py-1 text-[11px] text-obsidian backdrop-blur hover:bg-obsidian/30">
                     {s}
                   </Link>
                 </li>
               ))}
             </ul>
-            <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-cloud">
+            <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-obsidian">
               Explore collection <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
             </span>
           </article>

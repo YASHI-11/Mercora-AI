@@ -99,24 +99,24 @@ export default function StoreNav() {
 
           <div className="ml-auto flex items-center gap-1">
             <button onClick={() => setSearchOpen(true)} aria-label="Search products"
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-silver hover:bg-white/5 hover:text-cloud">
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-silver hover:bg-tint/5 hover:text-cloud">
               <Search size={18} />
             </button>
 
             <div ref={accountRef} className="relative hidden sm:block">
               <button onClick={() => setAccountOpen((o) => !o)} aria-haspopup="menu" aria-expanded={accountOpen}
-                      aria-label="Account" className="flex h-10 items-center gap-2 rounded-full px-3 text-silver hover:bg-white/5 hover:text-cloud">
+                      aria-label="Account" className="flex h-10 items-center gap-2 rounded-full px-3 text-silver hover:bg-tint/5 hover:text-cloud">
                 <User size={18} />
                 {authed && name && <span className="max-w-24 truncate text-xs">{name}</span>}
               </button>
               {accountOpen && (
-                <div role="menu" className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-line bg-graphite py-1.5 shadow-2xl shadow-black/50">
+                <div role="menu" className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-line bg-graphite py-1.5 shadow-2xl shadow-shade/50">
                   {authed ? (
                     <>
                       <MenuLink to="/orders" icon={Package}>Orders</MenuLink>
                       <MenuLink to="/wishlist" icon={Heart}>Wishlist{wishlist.ids.length > 0 && ` (${wishlist.ids.length})`}</MenuLink>
                       <button role="menuitem" onClick={signOut}
-                              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-silver hover:bg-white/5 hover:text-cloud">
+                              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-silver hover:bg-tint/5 hover:text-cloud">
                         <LogOut size={15} /> Log out
                       </button>
                     </>
@@ -131,7 +131,7 @@ export default function StoreNav() {
             </div>
 
             <Link to="/cart" aria-label={`Cart, ${itemCount} item${itemCount === 1 ? '' : 's'}`}
-                  className="relative flex h-10 w-10 items-center justify-center rounded-full text-silver hover:bg-white/5 hover:text-cloud">
+                  className="relative flex h-10 w-10 items-center justify-center rounded-full text-silver hover:bg-tint/5 hover:text-cloud">
               <ShoppingBag size={18} />
               {itemCount > 0 && (
                 <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet px-1 text-[10px] font-semibold text-on-accent">
@@ -142,7 +142,7 @@ export default function StoreNav() {
 
             <button onClick={() => setMenuOpen((o) => !o)} aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                     aria-expanded={menuOpen} aria-controls="mobile-menu"
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-silver hover:bg-white/5 hover:text-cloud lg:hidden">
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-silver hover:bg-tint/5 hover:text-cloud lg:hidden">
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
@@ -152,7 +152,7 @@ export default function StoreNav() {
           <div id="mobile-menu" className="max-h-[calc(100svh-4rem)] overflow-y-auto border-t border-line px-4 pb-8 pt-4 lg:hidden">
             <nav aria-label="Mobile" className="grid gap-1">
               {NAV.map((n) => (
-                <Link key={n.to} to={n.to} className="rounded-xl px-3 py-3 text-base font-medium text-cloud hover:bg-white/5">
+                <Link key={n.to} to={n.to} className="rounded-xl px-3 py-3 text-base font-medium text-cloud hover:bg-tint/5">
                   {n.label}
                 </Link>
               ))}
@@ -163,7 +163,7 @@ export default function StoreNav() {
                 <div className="grid grid-cols-2 gap-1">
                   {cats.taxonomy.map((c) => (
                     <Link key={c.category} to={`/shop?category=${encodeURIComponent(c.category)}`}
-                          className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-white/5 hover:text-cloud">
+                          className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-tint/5 hover:text-cloud">
                       {c.category}
                     </Link>
                   ))}
@@ -174,14 +174,14 @@ export default function StoreNav() {
             <div className="grid gap-1">
               {authed ? (
                 <>
-                  <Link to="/orders" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-white/5 hover:text-cloud">Orders</Link>
-                  <Link to="/wishlist" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-white/5 hover:text-cloud">Wishlist</Link>
-                  <button onClick={signOut} className="rounded-xl px-3 py-2.5 text-left text-sm text-silver hover:bg-white/5 hover:text-cloud">Log out</button>
+                  <Link to="/orders" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-tint/5 hover:text-cloud">Orders</Link>
+                  <Link to="/wishlist" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-tint/5 hover:text-cloud">Wishlist</Link>
+                  <button onClick={signOut} className="rounded-xl px-3 py-2.5 text-left text-sm text-silver hover:bg-tint/5 hover:text-cloud">Log out</button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-white/5 hover:text-cloud">Sign in / Sign up</Link>
-                  <Link to="/wishlist" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-white/5 hover:text-cloud">Wishlist</Link>
+                  <Link to="/login" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-tint/5 hover:text-cloud">Sign in / Sign up</Link>
+                  <Link to="/wishlist" className="rounded-xl px-3 py-2.5 text-sm text-silver hover:bg-tint/5 hover:text-cloud">Wishlist</Link>
                 </>
               )}
             </div>
@@ -195,7 +195,7 @@ export default function StoreNav() {
 
 function MenuLink({ to, icon: Icon, children }: { to: string; icon: typeof User; children: ReactNode }) {
   return (
-    <Link role="menuitem" to={to} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-silver hover:bg-white/5 hover:text-cloud">
+    <Link role="menuitem" to={to} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-silver hover:bg-tint/5 hover:text-cloud">
       <Icon size={15} /> {children}
     </Link>
   )

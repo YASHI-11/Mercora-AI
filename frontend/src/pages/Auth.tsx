@@ -120,9 +120,9 @@ export default function Auth() {
               <input required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" className={inputClass} />
               <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" className={inputClass} />
               <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={inputClass} />
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-xs text-bad">{error}</p>}
               <button type="submit" disabled={loading}
-                      className="w-full flex items-center justify-center gap-2 rounded-full bg-cloud py-3 text-sm font-semibold text-obsidian hover:bg-white disabled:opacity-60">
+                      className="w-full flex items-center justify-center gap-2 rounded-full bg-cloud py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong disabled:opacity-60">
                 {loading ? <><Loader2 size={15} className="animate-spin" /> Sending OTP…</> : 'Send OTP'}
               </button>
             </form>
@@ -133,9 +133,9 @@ export default function Auth() {
               <h1 className="text-2xl font-semibold text-cloud mb-1">Welcome back</h1>
               <p className="text-xs text-silver mb-4">Log in with just your phone number — we'll send you an OTP.</p>
               <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" className={inputClass} />
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-xs text-bad">{error}</p>}
               <button type="submit" disabled={loading}
-                      className="w-full flex items-center justify-center gap-2 rounded-full bg-cloud py-3 text-sm font-semibold text-obsidian hover:bg-white disabled:opacity-60">
+                      className="w-full flex items-center justify-center gap-2 rounded-full bg-cloud py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong disabled:opacity-60">
                 {loading ? <><Loader2 size={15} className="animate-spin" /> Sending OTP…</> : 'Send OTP'}
               </button>
             </form>
@@ -153,16 +153,16 @@ export default function Auth() {
               <input required inputMode="numeric" maxLength={6} value={otp}
                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                      placeholder="6-digit OTP" className={`${inputClass} text-center tracking-[0.4em] text-lg`} />
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-xs text-bad">{error}</p>}
               <button type="submit" disabled={loading || otp.length !== 6}
-                      className="w-full flex items-center justify-center gap-2 rounded-full bg-cloud py-3 text-sm font-semibold text-obsidian hover:bg-white disabled:opacity-60">
+                      className="w-full flex items-center justify-center gap-2 rounded-full bg-cloud py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong disabled:opacity-60">
                 {loading ? <><Loader2 size={15} className="animate-spin" /> Verifying…</> : 'Verify & Continue'}
               </button>
             </form>
           )}
 
           <p className="flex items-center justify-center gap-1.5 mt-5 text-[11px] text-silver">
-            <ShieldCheck size={12} className="text-emerald-400" /> Your number is only used for account verification.
+            <ShieldCheck size={12} className="text-good" /> Your number is only used for account verification.
           </p>
         </div>
       </div>

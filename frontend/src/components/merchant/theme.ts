@@ -3,17 +3,23 @@
 // in text tokens and never in the series colour.
 
 export const CHART = {
-  grid: '#1b3150',
-  axis: { fontSize: 11, fill: '#93a7c1' },
-  /** Single-series marks: the brand's ice. */
-  ice: '#b9dfff',
+  grid: '#e3e8ef',
+  axis: { fontSize: 11, fill: '#536378' },
+  /** Category names and value labels: secondary ink. */
+  label: '#2b3b52',
+  /** Single-series marks: the palette's cobalt. */
+  accent: '#2457d6',
   /** Ring separating overlapping marks: the panel surface. */
-  surface: '#0c1d35',
-  /** Categorical slots 1-3 of the reference palette, dark steps, validated
-   * against the panel surface (#0c1d35): CVD and normal-vision separation
-   * pass all-pairs, every slot >= 3:1. Fixed per entity, never by rank. */
-  series: ['#3987e5', '#d95926', '#199e70'] as const,
-  cursor: 'rgba(185, 223, 255, 0.06)',
+  surface: '#ffffff',
+  /** Diagonal reference lines. */
+  reference: '#9aa8ba',
+  /** Categorical slots 1-3 of the dataviz reference palette, light steps,
+   * validated against the panel surface (#ffffff): CVD and normal-vision
+   * separation pass all-pairs. Slot 3 is under 3:1, so every categorical
+   * chart also carries value labels and a table view. Fixed per entity,
+   * never by rank. */
+  series: ['#2a78d6', '#eb6834', '#1baf7a'] as const,
+  cursor: 'rgba(11, 26, 46, 0.04)',
 }
 
 /** Axis ticks: the short scale without decimals or spaces (₹80L, ₹3Cr). */
@@ -27,6 +33,6 @@ export function axisINR(value: number): string {
 export type TipProps = { active?: boolean; label?: string | number; payload?: { payload: Record<string, unknown> }[] }
 
 export const primaryButton =
-  'inline-flex items-center gap-1.5 rounded-full bg-cloud px-4 py-2 text-xs font-semibold text-obsidian hover:bg-white disabled:opacity-60'
+  'inline-flex items-center gap-1.5 rounded-full bg-cloud px-4 py-2 text-xs font-semibold text-obsidian hover:bg-cloud-strong disabled:opacity-60'
 export const ghostButton =
-  'inline-flex items-center gap-1.5 rounded-full border border-line px-3.5 py-2 text-xs font-medium text-cloud hover:border-lavender/50 hover:bg-white/5 disabled:opacity-60'
+  'inline-flex items-center gap-1.5 rounded-full border border-line px-3.5 py-2 text-xs font-medium text-cloud hover:border-lavender/50 hover:bg-tint/5 disabled:opacity-60'

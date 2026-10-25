@@ -31,7 +31,8 @@ interface Streak { x: number; y: number; angle: number; len: number; life: numbe
 interface Wave { x: number; y: number; r: number; vr: number; life: number; max: number; delay: number; squash: number; width: number }
 interface Flash { x: number; y: number; r: number; life: number; max: number }
 
-const NAVY = '#071426'
+// Homepage background. StoryScenes' scrims blend into it: change them together.
+const NAVY = '#030a14'
 const rand = (a: number, b: number) => a + Math.random() * (b - a)
 // Where the backdrop's light sits for each phase (fractions of the viewport).
 const GLOW: [number, number][] = [
@@ -146,8 +147,8 @@ export default function FragmentField({ ref }: { ref?: Ref<FieldHandle> }) {
       ctx2d.fillStyle = NAVY
       ctx2d.fillRect(0, 0, s.w, s.h)
       const g1 = ctx2d.createRadialGradient(gx, gy, 0, gx, gy, big * 0.75)
-      g1.addColorStop(0, 'rgba(14,38,70,1)')
-      g1.addColorStop(1, 'rgba(7,20,38,0)')
+      g1.addColorStop(0, 'rgba(8,22,42,1)')
+      g1.addColorStop(1, 'rgba(3,10,20,0)')
       ctx2d.fillStyle = g1
       ctx2d.fillRect(0, 0, s.w, s.h)
       const ix = s.w - gx * 0.6, iy = s.h * 0.85 - gy * 0.3

@@ -32,7 +32,7 @@ export default function MerchantProducts() {
           </thead>
           <tbody className="divide-y divide-line/70">
             {data?.products.map((p) => (
-              <tr key={p._id} className="hover:bg-white/[0.03]">
+              <tr key={p._id} className="hover:bg-tint/[0.03]">
                 <td className="px-5 py-2.5">
                   <div className="flex items-center gap-3">
                     <ProductImage src={p.image} name={p.name} category={p.category}

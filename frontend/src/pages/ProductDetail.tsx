@@ -125,7 +125,7 @@ function ProductView({ id }: { id?: string }) {
                       className="flex h-12 w-11 items-center justify-center text-silver hover:text-cloud disabled:opacity-40"><Plus size={15} /></button>
             </div>
             <button onClick={() => add(product, qty)} disabled={soldOut || pendingId === product._id}
-                    className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-cloud px-6 text-sm font-semibold text-obsidian hover:bg-white disabled:opacity-50">
+                    className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-cloud px-6 text-sm font-semibold text-obsidian hover:bg-cloud-strong disabled:opacity-50">
               {pendingId === product._id && <Loader2 size={15} className="animate-spin" />} Add to cart
             </button>
             <button onClick={buyNow} disabled={soldOut || pendingId === product._id}

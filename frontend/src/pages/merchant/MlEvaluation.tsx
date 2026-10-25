@@ -65,7 +65,7 @@ export default function MlEvaluation() {
           {run.isPending && report && (
             <p className="text-[11px] text-silver">The last run took {report.duration_seconds.toFixed(0)}s</p>
           )}
-          {runError && <p role="alert" className="text-[11px] text-red-300">{runError}</p>}
+          {runError && <p role="alert" className="text-[11px] text-bad">{runError}</p>}
         </div>
       </header>
 
@@ -227,7 +227,7 @@ function RecommenderComparison({ k, rec }: { k: number; rec: NonNullable<MlEvalu
                       <Bar dataKey="value" maxBarSize={24} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                         {rows.map((r) => <Cell key={r.method} fill={r.color} />)}
                         <LabelList dataKey="value" position="top" formatter={(v) => pct(Number(v))}
-                                   style={{ fontSize: 11, fill: '#c9d6e6' }} />
+                                   style={{ fontSize: 11, fill: CHART.label }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -258,15 +258,15 @@ function CalibrationChart({ points }: { points: Point[] }) {
         <CartesianGrid stroke={CHART.grid} />
         <XAxis type="number" dataKey="train_confidence" domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]}
                tickFormatter={(v: number) => `${v * 100}%`} tick={CHART.axis} tickLine={false} axisLine={{ stroke: CHART.grid }}
-               label={{ value: 'Confidence in training orders', position: 'insideBottom', offset: -14, fontSize: 11, fill: '#93a7c1' }} />
+               label={{ value: 'Confidence in training orders', position: 'insideBottom', offset: -14, fontSize: 11, fill: CHART.axis.fill }} />
         <YAxis type="number" dataKey="holdout_confidence" domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]}
                tickFormatter={(v: number) => `${v * 100}%`} tick={CHART.axis} tickLine={false} axisLine={false} width={44} />
-        <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="#4d6a91" strokeWidth={1}
-                       label={{ value: 'held exactly', position: 'insideTopRight', fontSize: 10, fill: '#93a7c1' }} />
+        <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke={CHART.reference} strokeWidth={1}
+                       label={{ value: 'held exactly', position: 'insideTopRight', fontSize: 10, fill: CHART.axis.fill }} />
         <Tooltip cursor={false} content={<PointTip />} />
-        <Scatter data={points} fill={CHART.ice} isAnimationActive={false}
+        <Scatter data={points} fill={CHART.accent} isAnimationActive={false}
                  shape={(props: { cx?: number; cy?: number }) => (
-                   <circle cx={props.cx} cy={props.cy} r={4} fill={CHART.ice} fillOpacity={0.85} stroke={CHART.surface} strokeWidth={2} />
+                   <circle cx={props.cx} cy={props.cy} r={4} fill={CHART.accent} fillOpacity={0.85} stroke={CHART.surface} strokeWidth={2} />
                  )} />
       </ScatterChart>
     </ResponsiveContainer>

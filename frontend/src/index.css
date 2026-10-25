@@ -8,30 +8,45 @@
 
   --color-ink: #0c0b09;
 
-  /* Brand palette for the storefront and the merchant console: the
-     homepage's midnight navy and ice, plus one warm "parcel kraft" accent.
-     Token names are historical (the first palette was black + violet/cyan);
-     their roles:
-       obsidian    page background (#071426, the homepage navy)
+  /* "Paper & Ink": the palette for every page except the homepage, which
+     keeps its original dark palette through .theme-legacy (App.tsx applies
+     it on / only). Token names are historical (the first palette was black +
+     violet/cyan); their roles, with contrast on the page and card surfaces:
+       obsidian    page background (cool paper)
        graphite    card surface; graphite-2 raised surface / image wells
        line        hairline borders
-       cloud       primary text; silver muted text (>= 5.9:1 on every surface)
-       lavender    ice: accent text, eyebrows, links (information, AI)
-       cyan        bright ice: focus rings, recommendation reasons, highlights
+       cloud       ink: primary text, and the fill of primary buttons;
+                   cloud-strong is its hover (a deeper ink)
+       silver      muted text (5.7:1)
+       lavender    cobalt: accent text, eyebrows, links (information, AI)
+       cyan        cobalt: focus rings, recommendation reasons, highlights
        violet      kraft, the only warm colour: sale badges, saved items, the
-                   shopper's own chat bubbles, active selections. Text on a
-                   kraft fill uses `on-accent` (white on kraft is 2:1).
-     The homepage (route /) keeps its original values via .theme-legacy. */
-  --color-obsidian: #071426;
-  --color-graphite: #0c1d35;
-  --color-graphite-2: #132945;
-  --color-line: #213a5e;
-  --color-violet: #e2ad66;
-  --color-on-accent: #071426;
-  --color-cyan: #8fcbff;
-  --color-cloud: #eef3fa;
-  --color-silver: #93a7c1;
-  --color-lavender: #b9dfff;
+                   shopper's own chat bubbles, active selections; text on a
+                   kraft fill uses `on-accent`
+       tint        hover / pressed overlays (bg-tint/5), ink on paper
+       shade       shadows, pre-faded so `shadow-shade/50` stays soft
+       good, warn, warn-strong, bad, good-fill
+                   status text (>= 4.6:1) and the filled success badge
+     Every token is redefined in .theme-legacy with the homepage's exact
+     original value, so a token change here cannot restyle the homepage. */
+  --color-obsidian: #f4f6f9;
+  --color-graphite: #ffffff;
+  --color-graphite-2: #eaeef4;
+  --color-line: #d6dde7;
+  --color-cloud: #0b1a2e;
+  --color-cloud-strong: #020a14;
+  --color-silver: #536378;
+  --color-lavender: #2457d6;
+  --color-cyan: #2051c9;
+  --color-violet: #a8560f;
+  --color-on-accent: #ffffff;
+  --color-tint: #0b1a2e;
+  --color-shade: rgb(11 26 46 / 0.32);
+  --color-good: #0f7b4b;
+  --color-good-fill: #0f7b4b;
+  --color-warn: #9a5b00;
+  --color-warn-strong: #b45309;
+  --color-bad: #c0262d;
 
   --animate-scan: scan 1.6s ease-in-out infinite;
   @keyframes scan {
@@ -82,9 +97,9 @@ a, button {
 html[data-intro="playing"] .store-nav { opacity: 0; pointer-events: none; }
 
 .storefront {
-  --selection: rgba(185, 223, 255, 0.3);
-  --scrollbar: #24406a;
-  color-scheme: dark;
+  --selection: rgba(36, 87, 214, 0.16);
+  --scrollbar: #c5cfdc;
+  color-scheme: light;
   min-height: 100%;
   background: var(--color-obsidian);
   color: var(--color-cloud);
@@ -102,8 +117,17 @@ html[data-intro="playing"] .store-nav { opacity: 0; pointer-events: none; }
   --color-cloud: #f5f5f7;
   --color-silver: #9b9eac;
   --color-lavender: #c7b8ff;
+  --color-cloud-strong: #ffffff;
+  --color-tint: #ffffff;
+  --color-shade: #000000;
+  --color-good: oklch(76.5% 0.177 163.223);       /* emerald-400 */
+  --color-good-fill: oklch(69.6% 0.17 162.48);    /* emerald-500 */
+  --color-warn: oklch(87.9% 0.169 91.605);        /* amber-300 */
+  --color-warn-strong: oklch(82.8% 0.189 84.429); /* amber-400 */
+  --color-bad: oklch(70.4% 0.191 22.216);         /* red-400 */
   --selection: rgba(139, 92, 246, 0.45);
   --scrollbar: #2a2d3a;
+  color-scheme: dark;
 }
 
 .storefront ::selection {
@@ -157,11 +181,12 @@ html[data-intro="playing"] .store-nav { opacity: 0; pointer-events: none; }
    reduced-motion rule below). */
 .rise-in { animation: fadeUp 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* Ambient light for non-home pages: the homepage's navy with a faint ice glow. */
+/* Ambient light for the paper pages: a faint cobalt wash top right and a
+   warmer kraft one top left, so large pages aren't flat sheets. */
 .ambient {
   background:
-    radial-gradient(60rem 28rem at 85% -8rem, rgba(185, 223, 255, 0.09), transparent 70%),
-    radial-gradient(40rem 22rem at -10% 10rem, rgba(226, 173, 102, 0.05), transparent 70%);
+    radial-gradient(60rem 26rem at 85% -8rem, rgba(36, 87, 214, 0.07), transparent 70%),
+    radial-gradient(40rem 22rem at -10% 8rem, rgba(168, 86, 15, 0.05), transparent 70%);
 }
 .storefront ::-webkit-scrollbar-track { background: transparent; }
 

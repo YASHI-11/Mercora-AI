@@ -30,7 +30,7 @@ export default function Compare() {
       {compare.ids.length < 2 ? (
         <div className="mt-12 text-silver">
           <p>Select two or three products to compare using the <span className="text-cloud">compare</span> button on any product card.</p>
-          <Link to="/shop" className="mt-6 inline-block rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">Browse products</Link>
+          <Link to="/shop" className="mt-6 inline-block rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong">Browse products</Link>
         </div>
       ) : (
         <div className="mt-10 overflow-x-auto">
@@ -70,7 +70,7 @@ export default function Compare() {
                 {products.map((p) => (
                   <td key={p._id} className="px-3 pt-5">
                     <button onClick={() => add(p)} disabled={pendingId === p._id || p.inventory === 0}
-                            className="w-full rounded-full bg-cloud py-2.5 text-xs font-semibold text-obsidian hover:bg-white disabled:opacity-50">
+                            className="w-full rounded-full bg-cloud py-2.5 text-xs font-semibold text-obsidian hover:bg-cloud-strong disabled:opacity-50">
                       Add to cart
                     </button>
                   </td>

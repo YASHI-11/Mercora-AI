@@ -67,7 +67,7 @@ export function WorldScene() {
     <section aria-label="A new world" className="scene-world relative motion-safe:h-[220svh]">
       <div className={stage}>
         <div className="world-copy mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 motion-safe:absolute motion-safe:inset-x-0 motion-safe:bottom-[10svh] motion-safe:py-0">
-          <div className="max-w-xl rounded-3xl bg-[radial-gradient(closest-side,rgba(7,20,38,0.85),transparent)] py-6">
+          <div className="max-w-xl rounded-3xl bg-[radial-gradient(closest-side,rgba(3,10,20,0.85),transparent)] py-6">
             <p className="eyebrow !text-[#B9DFFF]">03 · A new world</p>
             <h2 className="display-section mt-4 font-semibold text-white">A universe of products, rebuilt around you.</h2>
             {data && (
@@ -196,7 +196,7 @@ export function ShopScene() {
                     className="group relative isolate flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-2xl border border-white/10 p-4 hover:border-[#B9DFFF]/50">
                 <ProductImage src={c.image} name={c.top_product || c.category} category={c.category}
                               className="absolute inset-0 -z-10 h-full w-full transition-transform duration-500 group-hover:scale-105" />
-                <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-[#071426] via-[#071426]/50 to-transparent" />
+                <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-[#030a14] via-[#030a14]/50 to-transparent" />
                 <span className="font-mono text-[10px] tracking-[0.18em] text-[#B9DFFF]">{c.count} PRODUCTS</span>
                 <span className="mt-1 text-base font-semibold leading-tight text-white">{c.category}</span>
                 <span className="mt-2 inline-flex items-center gap-1 text-xs text-white/70">

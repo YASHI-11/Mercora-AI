@@ -24,7 +24,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; blurb: string; end?: b
 
 const itemClass = ({ isActive }: { isActive: boolean }) =>
   `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-    isActive ? 'bg-graphite-2 text-cloud' : 'text-silver hover:bg-white/[0.04] hover:text-cloud'
+    isActive ? 'bg-graphite-2 text-cloud' : 'text-silver hover:bg-tint/[0.04] hover:text-cloud'
   }`
 
 /** The merchant console: a sidebar shell on the storefront palette. */

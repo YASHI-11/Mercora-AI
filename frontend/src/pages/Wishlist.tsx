@@ -23,7 +23,7 @@ export default function Wishlist() {
           <Heart size={28} className="text-silver" aria-hidden />
           <p className="text-cloud">Nothing saved yet.</p>
           <p className="text-sm text-silver">Tap the heart on any product to keep it here.</p>
-          <Link to="/shop" className="mt-3 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">Browse products</Link>
+          <Link to="/shop" className="mt-3 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong">Browse products</Link>
         </div>
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">

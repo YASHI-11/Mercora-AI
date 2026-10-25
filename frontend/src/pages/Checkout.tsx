@@ -81,7 +81,7 @@ export default function Checkout() {
           }
         },
         modal: { ondismiss: () => setStatus('idle') },
-        theme: { color: '#8b5cf6' },
+        theme: { color: '#2457d6' },
       })
       rzp.on('payment.failed', () => { setStatus('failed'); setErrorMsg('Payment failed or was declined.') })
       rzp.open()
@@ -98,12 +98,12 @@ export default function Checkout() {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <Steps current={stepIndex} />
-        <CheckCircle2 size={44} className="mx-auto mb-4 text-emerald-400" aria-hidden />
+        <CheckCircle2 size={44} className="mx-auto mb-4 text-good" aria-hidden />
         <h1 className="text-3xl font-semibold text-cloud">Payment confirmed</h1>
         <p className="mt-2 text-sm text-silver">Your payment was verified on our server and the order is confirmed.</p>
         <div className="mt-8 flex justify-center gap-3">
-          <button onClick={() => navigate('/orders')} className="rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">View orders</button>
-          <button onClick={() => navigate('/shop')} className="rounded-full border border-line px-6 py-3 text-sm font-semibold text-cloud hover:bg-white/5">Continue shopping</button>
+          <button onClick={() => navigate('/orders')} className="rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong">View orders</button>
+          <button onClick={() => navigate('/shop')} className="rounded-full border border-line px-6 py-3 text-sm font-semibold text-cloud hover:bg-tint/5">Continue shopping</button>
         </div>
         {orderId && (
           <Link to={`/orders/${orderId}/invoice`} className="mt-5 inline-flex items-center gap-1.5 text-sm text-lavender hover:text-cloud">
@@ -117,10 +117,10 @@ export default function Checkout() {
   if (status === 'failed') {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <XCircle size={44} className="mx-auto mb-4 text-red-400" aria-hidden />
+        <XCircle size={44} className="mx-auto mb-4 text-bad" aria-hidden />
         <h1 className="text-3xl font-semibold text-cloud">Payment not completed</h1>
         <p className="mt-2 text-sm text-silver">{errorMsg || 'Something went wrong during payment.'} You have not been charged for an unverified payment.</p>
-        <button onClick={() => setStatus('idle')} className="mt-8 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">Try again</button>
+        <button onClick={() => setStatus('idle')} className="mt-8 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong">Try again</button>
       </div>
     )
   }
@@ -129,7 +129,7 @@ export default function Checkout() {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
         <p className="text-silver">Your cart is empty.</p>
-        <button onClick={() => navigate('/shop')} className="mt-5 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-white">Go to shop</button>
+        <button onClick={() => navigate('/shop')} className="mt-5 rounded-full bg-cloud px-6 py-3 text-sm font-semibold text-obsidian hover:bg-cloud-strong">Go to shop</button>
       </div>
     )
   }
@@ -156,11 +156,11 @@ export default function Checkout() {
         </dl>
 
         <button onClick={startPayment} disabled={status === 'processing'}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-cloud py-3.5 text-sm font-semibold text-obsidian hover:bg-white disabled:opacity-60">
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-cloud py-3.5 text-sm font-semibold text-obsidian hover:bg-cloud-strong disabled:opacity-60">
           {status === 'processing' ? <><Loader2 size={15} className="animate-spin" /> Processing…</> : `Pay ₹${cart.total.toLocaleString('en-IN')} with Razorpay`}
         </button>
         <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-silver">
-          <ShieldCheck size={13} className="text-emerald-400" aria-hidden /> Payment is verified on our server before your order is confirmed.
+          <ShieldCheck size={13} className="text-good" aria-hidden /> Payment is verified on our server before your order is confirmed.
         </p>
       </section>
       <p className="mt-6 text-sm text-silver">After payment you'll get an order confirmation and an invoice under <Link to="/orders" className="text-lavender hover:text-cloud">Orders</Link>.</p>
@@ -177,7 +177,7 @@ function Steps({ current }: { current: number }) {
         <li key={s} aria-current={i === current ? 'step' : undefined}
             className={`flex items-center gap-2 ${i <= current ? 'text-cloud' : 'text-silver'}`}>
           <span className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] ${
-            i < current ? 'bg-emerald-500 text-white' : i === current ? 'bg-cloud text-obsidian' : 'border border-line'
+            i < current ? 'bg-good-fill text-white' : i === current ? 'bg-cloud text-obsidian' : 'border border-line'
           }`}>{i + 1}</span>
           {s}
           {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-line" aria-hidden />}

@@ -12,7 +12,7 @@ export function LoadingState({ label = 'Loading…' }: { label?: string }) {
 export function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <AlertTriangle size={22} className="text-red-400" />
+      <AlertTriangle size={22} className="text-bad" />
       <span className="max-w-sm text-sm text-silver">{message}</span>
     </div>
   )

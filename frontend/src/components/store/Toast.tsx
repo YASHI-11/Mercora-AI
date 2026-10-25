@@ -21,10 +21,10 @@ export default function ToastRegion() {
          className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4">
       {items.map((m) => (
         <div key={m.id}
-             className="pointer-events-auto flex items-center gap-2 rounded-full border border-line bg-graphite/95 px-4 py-2.5 text-sm text-cloud shadow-2xl shadow-black/40 backdrop-blur">
+             className="pointer-events-auto flex items-center gap-2 rounded-full border border-line bg-graphite/95 px-4 py-2.5 text-sm text-cloud shadow-2xl shadow-shade/40 backdrop-blur">
           {m.tone === 'success'
             ? <CheckCircle2 size={15} className="text-cyan" aria-hidden />
-            : <AlertTriangle size={15} className="text-amber-400" aria-hidden />}
+            : <AlertTriangle size={15} className="text-warn-strong" aria-hidden />}
           {m.text}
         </div>
       ))}

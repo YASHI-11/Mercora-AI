@@ -178,7 +178,7 @@ export default function Shop() {
                   </div>
                   {shown < data.total && (
                     <button onClick={() => setPaging({ key: filterKey, limit: limit + PAGE })} disabled={isFetching}
-                            className="mt-5 rounded-full border border-line px-6 py-3 text-sm font-medium text-cloud hover:border-lavender/60 hover:bg-white/5 disabled:opacity-50">
+                            className="mt-5 rounded-full border border-line px-6 py-3 text-sm font-medium text-cloud hover:border-lavender/60 hover:bg-tint/5 disabled:opacity-50">
                       {isFetching ? 'Loading…' : `Show ${Math.min(PAGE, data.total - shown)} more`}
                     </button>
                   )}
@@ -195,7 +195,7 @@ export default function Shop() {
           <div className="absolute inset-y-0 left-0 w-[86%] max-w-sm overflow-y-auto border-r border-line bg-graphite p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-cloud">Filters</h2>
-              <button onClick={() => setDrawer(false)} aria-label="Close filters" className="flex h-9 w-9 items-center justify-center rounded-full text-silver hover:bg-white/5">
+              <button onClick={() => setDrawer(false)} aria-label="Close filters" className="flex h-9 w-9 items-center justify-center rounded-full text-silver hover:bg-tint/5">
                 <X size={18} />
               </button>
             </div>
@@ -209,12 +209,12 @@ export default function Shop() {
 
       {compare.ids.length > 0 && (
         <div className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
-          <div className="glass flex items-center gap-3 rounded-full border border-lavender/30 py-2 pl-5 pr-2 shadow-2xl shadow-black/50">
+          <div className="glass flex items-center gap-3 rounded-full border border-lavender/30 py-2 pl-5 pr-2 shadow-2xl shadow-shade/50">
             <GitCompareArrows size={16} className="text-lavender" aria-hidden />
             <span className="text-sm text-cloud">{compare.ids.length} of 3 selected</span>
             <button onClick={compare.clear} className="text-xs text-silver hover:text-cloud">Clear</button>
             <Link to="/compare" className={`rounded-full px-4 py-2 text-sm font-semibold ${
-              compare.ids.length > 1 ? 'bg-cloud text-obsidian hover:bg-white' : 'pointer-events-none bg-white/10 text-silver'
+              compare.ids.length > 1 ? 'bg-cloud text-obsidian hover:bg-cloud-strong' : 'pointer-events-none bg-tint/10 text-silver'
             }`} aria-disabled={compare.ids.length < 2}>
               Compare
             </Link>
@@ -236,10 +236,11 @@ function CollectionRail({ taxonomy, onPick }: { taxonomy: CategoryInfo[]; onPick
                     className="group relative block h-40 w-44 overflow-hidden rounded-2xl border border-line text-left hover:border-lavender/50">
               <ProductImage src={c.image} name={c.category} category={c.category}
                             className="absolute inset-0 h-full w-full transition-transform duration-700 group-hover:scale-[1.06]" />
-              <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/55 to-obsidian/5" />
+              {/* Text over a photo: an ink scrim with paper-coloured text. */}
+              <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-cloud/85 via-cloud/35 to-transparent" />
               <span className="absolute inset-x-3 bottom-3">
-                <span className="block text-sm font-semibold leading-tight text-cloud">{c.category}</span>
-                <span className="mt-0.5 block font-mono text-[10px] tracking-[0.1em] text-lavender">{c.count.toLocaleString('en-IN')} PRODUCTS</span>
+                <span className="block text-sm font-semibold leading-tight text-obsidian">{c.category}</span>
+                <span className="mt-0.5 block font-mono text-[10px] tracking-[0.1em] text-obsidian/80">{c.count.toLocaleString('en-IN')} PRODUCTS</span>
               </span>
             </button>
           </li>
@@ -293,8 +294,8 @@ function Filters({ category, subcategory, subcats, categories, minPrice, maxPric
   // Active options carry the kraft marker, the page's one warm cue.
   const option = (active: boolean) =>
     `relative flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
-      active ? 'bg-white/[0.05] text-cloud before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-violet'
-             : 'text-silver hover:bg-white/[0.04] hover:text-cloud'
+      active ? 'bg-tint/[0.05] text-cloud before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-violet'
+             : 'text-silver hover:bg-tint/[0.04] hover:text-cloud'
     }`
 
   return (
@@ -366,7 +367,7 @@ function PriceRange({ minPrice, maxPrice, onApply }: {
       <span className="text-silver">–</span>
       <input type="number" min={0} inputMode="numeric" value={hi} onChange={(e) => setHi(e.target.value)}
              aria-label="Maximum price" placeholder="Max" className={input} />
-      <button type="submit" className="rounded-lg border border-line px-3 py-2 text-sm text-cloud hover:border-lavender/50 hover:bg-white/5">Go</button>
+      <button type="submit" className="rounded-lg border border-line px-3 py-2 text-sm text-cloud hover:border-lavender/50 hover:bg-tint/5">Go</button>
     </form>
   )
 }
